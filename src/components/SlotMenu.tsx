@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { SaveSlot } from '../game/save';
 import { TOTAL } from '../game/creatures';
 import { avatarURL } from '../art/assets';
-import { say } from '../system/speech';
 import { sfx } from '../system/audio';
 import { Menu, LAYER, BallIcon, EyeIcon, KeyHint, A, Bb } from './ui';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -24,17 +23,15 @@ export function SlotMenu({ slots, onPlay, onNew, onDelete, onSettings, onBack, a
   const options = [
     ...slots.map((s) => ({
       label: s.name,
-      speak: `Partida de ${s.name}. Modo ${s.mode === 'easy' ? 'fácil' : 'normal'}. ${s.caught.length} atrapados.`,
       className: 'slot-opt',
     })),
-    { label: '+ Nueva partida', speak: 'Nueva partida', className: 'new-opt' },
-    { label: 'Ajustes', speak: 'Ajustes', className: 'settings-opt' },
+    { label: '+ Nueva partida', className: 'new-opt' },
+    { label: 'Ajustes', className: 'settings-opt' },
   ];
 
   const select = (i: number) => {
     if (i < slots.length) {
       setChosen(slots[i]);
-      say(`¿Qué hacemos con la partida de ${slots[i].name}?`);
     } else if (i === slots.length) onNew();
     else onSettings();
   };
@@ -93,7 +90,6 @@ export function SlotMenu({ slots, onPlay, onNew, onDelete, onSettings, onBack, a
                 if (i === 0) onPlay(chosen.id);
                 else if (i === 1) {
                   setConfirmDelete(chosen);
-                  say(`¿Seguro que quieres borrar la partida de ${chosen.name}?`);
                 } else setChosen(null);
               }}
               onBack={() => setChosen(null)}

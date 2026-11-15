@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SaveSlot } from '../game/save';
 import { SPECIES, TOTAL, HABITAT_NAMES, dexNumber, getSpecies } from '../game/creatures';
-import { ELEMS } from '../game/elements';
 import { portraitURL } from '../art/assets';
 import { useInput } from '../system/input';
 import { sfx } from '../system/audio';
-import { say } from '../system/speech';
 import { LAYER, BallIcon, EyeIcon, KeyHint, A, Bb, TypeBadge, DirKeys } from './ui';
 
 const COLS = 6;
@@ -18,34 +16,14 @@ export function Dex({ slot, onClose }: { slot: SaveSlot; onClose: () => void }) 
   const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    say(`Tu Edudex. Has atrapado ${caught.size} y has visto ${seen.size} de ${TOTAL}.`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     gridRef.current?.querySelector(`[data-i="${idx}"]`)?.scrollIntoView({ block: 'nearest' });
   }, [idx, detail]);
-
-  const speakEntry = (i: number, full: boolean) => {
-    const s = SPECIES[i];
-    if (!seen.has(s.id)) {
-      say(`Número ${s.id}. Todavía no lo conoces.`);
-      return;
-    }
-    if (!full) {
-      say(s.name);
-      return;
-    }
-    const types = s.types.map((t) => ELEMS[t].name).join(' y ');
-    say(`Número ${s.id}. ${s.name}. Tipo ${types}. ${s.desc} ${caught.has(s.id) ? '¡Ya lo has atrapado!' : 'Lo has visto, pero aún no lo has atrapado.'}`);
-  };
 
   const move = (d: number) => {
     const ni = idx + d;
     if (ni < 0 || ni >= TOTAL) return;
     sfx('move');
     setIdx(ni);
-    speakEntry(ni, detail);
   };
 
   useInput((e) => {
@@ -85,12 +63,10 @@ export function Dex({ slot, onClose }: { slot: SaveSlot; onClose: () => void }) 
     const s = SPECIES[i];
     if (!seen.has(s.id)) {
       sfx('error');
-      say('Todavía no lo conoces. ¡Búscalo por el mundo!');
       return;
     }
     sfx('ok');
     setDetail(true);
-    speakEntry(i, true);
   };
 
   const s = getSpecies(idx + 1);

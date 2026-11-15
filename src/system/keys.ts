@@ -73,17 +73,6 @@ export function keyLabel(key: string): string {
   return key;
 }
 
-/** How to say a key out loud. */
-export function keySpeech(key: string): string {
-  const spoken: Record<string, string> = {
-    ArrowUp: 'flecha arriba',
-    ArrowDown: 'flecha abajo',
-    ArrowLeft: 'flecha izquierda',
-    ArrowRight: 'flecha derecha',
-  };
-  return spoken[key] ?? keyLabel(key);
-}
-
 /** Validate stored bindings; anything odd falls back to the defaults. */
 export function sanitizeBindings(raw: unknown): KeyBindings {
   const out: KeyBindings = { ...DEFAULT_KEYS };

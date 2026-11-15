@@ -28,4 +28,3 @@ The production build is a static site (`dist/`) and can be hosted on any web ser
 - **Modo fácil**: sin peleas, solo lanza la bola estrella. Cuanto más alto el número en el Edudex, más difícil es atraparlo.
 - Los Edumon aparecen por el mundo y se esconden en la hierba alta. Los legendarios esperan en lugares especiales: el cráter del gran volcán, la cumbre nevada, la meseta de la montaña, el santuario del bosque, la isla del lago y la isla volcánica.
 - Cada partida se guarda sola en el navegador (`localStorage`): el Edudex al momento, y el estado exacto del juego (dónde estás, los Edumon del mundo…) cada 5 pasos, después de cada combate y al salir. Al cargar la partida sigues justo donde lo dejaste.
-- La voz lee los textos en voz alta (se puede apagar en Ajustes).

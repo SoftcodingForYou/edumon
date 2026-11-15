@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { MAX_NAME, cleanName, nameTaken, type Mode, type SaveSlot } from '../game/save';
 import { getSpecies, STARTERS } from '../game/creatures';
-import { ELEMS } from '../game/elements';
 import { AVATARS } from '../art/sprites';
 import { avatarURL, ballURL, portraitURL } from '../art/assets';
 import { setTextMode, useInput } from '../system/input';
 import { sfx } from '../system/audio';
-import { say } from '../system/speech';
-import { Menu, LAYER, KeyHint, KeyCap, A, Bb, TypeBadge, LETTER_NAMES } from './ui';
+import { Menu, LAYER, KeyHint, KeyCap, A, Bb, TypeBadge } from './ui';
 import { ConfirmDialog } from './ConfirmDialog';
 
 export interface NewGameResult {
@@ -85,7 +83,6 @@ function NameEntry({ initial, slots, onCancel, onDone }: { initial: string; slot
 
   useEffect(() => {
     setTextMode(true);
-    say('¿Cómo se llama tu partida? Escribe tu nombre.');
     return () => setTextMode(false);
   }, []);
 
@@ -94,7 +91,6 @@ function NameEntry({ initial, slots, onCancel, onDone }: { initial: string; slot
   const fail = (msg: string) => {
     sfx('error');
     setError(msg);
-    say(msg);
   };
 
   const type = (ch: string) => {
@@ -103,7 +99,6 @@ function NameEntry({ initial, slots, onCancel, onDone }: { initial: string; slot
     sfx('type');
     setError('');
     setText(text + ch.toLocaleUpperCase('es'));
-    say(LETTER_NAMES[ch.toLocaleUpperCase('es')] ?? ch);
   };
 
   const erase = () => {
@@ -118,7 +113,6 @@ function NameEntry({ initial, slots, onCancel, onDone }: { initial: string; slot
     if (!clean) return fail('Primero escribe un nombre.');
     if (nameTaken(clean, slots)) return fail('¡Ese nombre ya existe! Elige otro nombre.');
     sfx('ok');
-    say(`¡Hola, ${clean}!`);
     onDone(clean);
   };
 
@@ -132,8 +126,6 @@ function NameEntry({ initial, slots, onCancel, onDone }: { initial: string; slot
     sfx('move');
     setRow(r);
     setCol(c);
-    const k = keyAt(r, c);
-    say(k === DELETE ? 'borrar' : k === DONE ? 'listo' : (LETTER_NAMES[k] ?? k));
   };
 
   useInput((e) => {
@@ -218,9 +210,6 @@ function NameEntry({ initial, slots, onCancel, onDone }: { initial: string; slot
 // ------------------------------------------------------------------ mode
 
 function ModeSelect({ initial, onBack, onDone }: { initial: Mode; onBack: () => void; onDone: (m: Mode) => void }) {
-  useEffect(() => {
-    void say('¿Cómo quieres jugar? ¿Modo normal o modo fácil?');
-  }, []);
   const modes: { m: Mode; title: string; text: string }[] = [
     { m: 'normal', title: 'Normal', text: 'Lucha con tus Edumon. Si ganas, ¡lo atrapas!' },
     { m: 'easy', title: 'Fácil', text: 'Sin peleas: lanza la bola estrella y... ¡a ver si lo atrapas!' },
@@ -229,7 +218,7 @@ function ModeSelect({ initial, onBack, onDone }: { initial: Mode; onBack: () => 
     <div className="screen mode-screen">
       <h2 className="screen-title">¿Cómo quieres jugar?</h2>
       <Menu
-        options={modes.map((x) => ({ label: x.title, speak: `Modo ${x.title.toLowerCase()}. ${x.text}` }))}
+        options={modes.map((x) => ({ label: x.title }))}
         columns={2}
         initial={initial === 'easy' ? 1 : 0}
         layer={LAYER.screen}
@@ -264,14 +253,11 @@ function ModeSelect({ initial, onBack, onDone }: { initial: Mode; onBack: () => 
 // ------------------------------------------------------------------ avatar
 
 function AvatarSelect({ initial, onBack, onDone }: { initial: number; onBack: () => void; onDone: (a: number) => void }) {
-  useEffect(() => {
-    void say('¿Quién eres? Elige tu personaje.');
-  }, []);
   return (
     <div className="screen avatar-screen">
       <h2 className="screen-title">¿Quién eres?</h2>
       <Menu
-        options={AVATARS.map((a) => ({ label: a.name, speak: a.name }))}
+        options={AVATARS.map((a) => ({ label: a.name }))}
         columns={3}
         initial={initial}
         layer={LAYER.screen}
@@ -295,16 +281,13 @@ function AvatarSelect({ initial, onBack, onDone }: { initial: number; onBack: ()
 
 function StarterSelect({ onBack, onDone }: { onBack: () => void; onDone: (id: number) => void }) {
   const [asking, setAsking] = useState<number | null>(null);
-  useEffect(() => {
-    void say('¡Elige a tu primer compañero!');
-  }, []);
   return (
     <div className="screen starter-screen">
       <h2 className="screen-title">¡Elige a tu primer compañero!</h2>
       <Menu
         options={STARTERS.map((id) => {
           const s = getSpecies(id);
-          return { label: s.name, speak: `${s.name}. Tipo ${s.types.map((t) => ELEMS[t].name).join(' y ')}. ${s.desc}` };
+          return { label: s.name };
         })}
         columns={3}
         layer={LAYER.screen}

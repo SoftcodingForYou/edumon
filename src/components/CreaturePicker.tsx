@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { getSpecies, type Species } from '../game/creatures';
 import { effectiveness } from '../game/elements';
 import { portraitURL } from '../art/assets';
-import { say } from '../system/speech';
 import { Menu, LAYER, TypeBadge, KeyHint, A, Bb } from './ui';
 
 interface Props {
@@ -17,9 +15,6 @@ interface Props {
 
 /** Grid of all caught Edumon (name + picture) to choose a fighter. */
 export function CreaturePicker({ team, wild, exclude, current, title, allowCancel, onDone }: Props) {
-  useEffect(() => {
-    void say(title);
-  }, [title]);
   const hint = (s: Species) => {
     const m = effectiveness(s.types[0], wild.types);
     return m > 1 ? 'strong' : m < 1 ? 'weak' : '';
@@ -30,11 +25,9 @@ export function CreaturePicker({ team, wild, exclude, current, title, allowCance
       <Menu
         options={team.map((id) => {
           const s = getSpecies(id);
-          const h = hint(s);
           return {
             label: s.name,
             disabled: exclude.includes(id),
-            speak: s.name + (h === 'strong' ? '. ¡Es muy eficaz!' : h === 'weak' ? '. No es muy eficaz.' : ''),
           };
         })}
         columns={4}

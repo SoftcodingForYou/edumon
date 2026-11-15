@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useInput } from '../system/input';
 import { playMusic, sfx } from '../system/audio';
-import { say } from '../system/speech';
 import { ballURL, genericURL } from '../art/assets';
 import { LAYER, A, Bb, Tt, Mm, DirKeys } from './ui';
 
@@ -12,7 +11,6 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
 
   const start = () => {
     sfx('ok');
-    say('¡Vamos a jugar!');
     onStart();
   };
 

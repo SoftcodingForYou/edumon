@@ -5,7 +5,6 @@ import { BIOME_HABITAT } from '../world/tiles';
 import { biomeOfPlayer, type WorldState } from '../world/world';
 import { useInput } from '../system/input';
 import { sfx } from '../system/audio';
-import { say } from '../system/speech';
 import { LAYER, KeyHint, Bb } from './ui';
 
 // Where the area names are written on the map (in tiles).
@@ -37,9 +36,7 @@ export function WorldMapView({ world, caught, avatar, onClose }: { world: WorldS
     ctx.imageSmoothingQuality = 'high';
     const src = getMapCanvas();
     ctx.drawImage(src, 0, 0, src.width, src.height, 0, 0, mapW, MAP_H);
-    const here = HABITAT_NAMES[BIOME_HABITAT[biomeOfPlayer(world)]];
-    void say(`El mapa. Estás en ${here}. Las estrellas marcan dónde viven los Edumon legendarios.`);
-  }, [world, mapW]);
+  }, [mapW]);
 
   useInput((e) => {
     if (e.btn === 'b' || e.btn === 'a' || e.btn === 'map') {

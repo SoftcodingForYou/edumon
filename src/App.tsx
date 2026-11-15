@@ -13,7 +13,6 @@ import {
 import { SPECIES, STARTERS } from './game/creatures';
 import type { Encounter } from './world/world';
 import { playMusic, setMusicEnabled, setSoundEnabled } from './system/audio';
-import { setVoiceEnabled } from './system/speech';
 import { setBindings } from './system/input';
 import { TitleScreen } from './components/TitleScreen';
 import { SlotMenu } from './components/SlotMenu';
@@ -96,7 +95,6 @@ export function App() {
   useEffect(() => {
     setSoundEnabled(settings.sound);
     setMusicEnabled(settings.music);
-    setVoiceEnabled(settings.voice);
   }, [settings]);
 
   useEffect(() => {

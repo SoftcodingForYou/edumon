@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Settings } from '../game/save';
-import { say, voiceAvailable } from '../system/speech';
 import { Menu, LAYER, KeyHint, A, Bb } from './ui';
 import { KeyBindingsPanel } from './KeyBindingsPanel';
 
@@ -26,16 +25,11 @@ function toggleFullscreen() {
 export function SettingsPanel({ settings, onChange, onClose, layer = LAYER.dialog }: Props) {
   const [keysOpen, setKeysOpen] = useState(false);
   const options = [
-    { label: `Sonidos: ${yesNo(settings.sound)}`, speak: `Sonidos: ${yesNo(settings.sound)}` },
-    { label: `Música: ${yesNo(settings.music)}`, speak: `Música: ${yesNo(settings.music)}` },
-    {
-      label: `Voz: ${yesNo(settings.voice)}`,
-      speak: `Voz: ${yesNo(settings.voice)}`,
-      sub: voiceAvailable() ? 'Lee los textos en voz alta' : 'Este navegador no tiene voz',
-    },
-    { label: 'Teclas', speak: 'Cambiar las teclas', sub: 'Elige qué tecla hace cada cosa' },
-    { label: 'Pantalla completa', speak: 'Pantalla completa' },
-    { label: 'Volver', speak: 'Volver' },
+    { label: `Sonidos: ${yesNo(settings.sound)}` },
+    { label: `Música: ${yesNo(settings.music)}` },
+    { label: 'Teclas', sub: 'Elige qué tecla hace cada cosa' },
+    { label: 'Pantalla completa' },
+    { label: 'Volver' },
   ];
   return (
     <div className="dialog-backdrop">
@@ -47,17 +41,10 @@ export function SettingsPanel({ settings, onChange, onClose, layer = LAYER.dialo
           active={!keysOpen}
           onBack={onClose}
           onSelect={(i) => {
-            if (i === 0) {
-              onChange({ ...settings, sound: !settings.sound });
-              void say(`Sonidos: ${yesNo(!settings.sound)}`);
-            } else if (i === 1) {
-              onChange({ ...settings, music: !settings.music });
-              void say(`Música: ${yesNo(!settings.music)}`);
-            } else if (i === 2) {
-              onChange({ ...settings, voice: !settings.voice });
-              if (!settings.voice) setTimeout(() => void say('Voz: Sí'), 50);
-            } else if (i === 3) setKeysOpen(true);
-            else if (i === 4) toggleFullscreen();
+            if (i === 0) onChange({ ...settings, sound: !settings.sound });
+            else if (i === 1) onChange({ ...settings, music: !settings.music });
+            else if (i === 2) setKeysOpen(true);
+            else if (i === 3) toggleFullscreen();
             else onClose();
           }}
         />

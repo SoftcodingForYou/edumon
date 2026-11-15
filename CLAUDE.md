@@ -61,7 +61,7 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   (simulation: movement, spawning, encounters), `renderer.ts` (canvas drawing).
 - `system/` – `keys.ts` (buttons, default/fallback keys, labels, rebinding), `input.ts` (layered
   input handlers, key capture, keyboard/touch/gamepad source), `audio.ts` (Web Audio SFX, per-type
-  attack sounds, original chiptunes), `speech.ts` (Spanish text-to-speech for pre-readers).
+  attack sounds, original chiptunes).
 - `components/` – React screens: TitleScreen, SlotMenu, NewGame, Play (saving/resuming, HUD),
   WorldView, Battle, AttackFx (attack effects + KO stars), CreaturePicker, Dex, TypeChart,
   WorldMapView, SettingsPanel, KeyBindingsPanel, TouchControls, shared `ui.tsx` (Menu, TextBox,
@@ -69,7 +69,8 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 
 ## Conventions
 
-- All player-facing text is Spanish, short and encouraging, and read aloud via `say()`.
+- All player-facing text is Spanish, short and encouraging. There is no voice-over (the client
+  removed text-to-speech because it didn't sound human); don't add it back.
 - Every screen/overlay listens with `useInput(handler, LAYER.x)`; the highest layer wins.
 - Never hard-code key names in hints: use `<A />`, `<Bb />`, `<Tt />`, `<Mm />`, `<DirKeys />`
   (they follow the player's key bindings and input device).

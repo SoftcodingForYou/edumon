@@ -1,33 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { ELEMS, TYPE_ORDER, strongAgainst, weakAgainst, type Elem } from '../game/elements';
+import { TYPE_ORDER, strongAgainst, weakAgainst } from '../game/elements';
 import { useInput } from '../system/input';
 import { sfx } from '../system/audio';
-import { say } from '../system/speech';
 import { LAYER, KeyHint, Bb, DirKeys, TypeBadge } from './ui';
-
-const listText = (ts: Elem[]) => {
-  const names = ts.map((t) => ELEMS[t].name.toLowerCase());
-  return names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}` : names[0] ?? '';
-};
-
-export function describeType(t: Elem): string {
-  const strong = strongAgainst(t);
-  const weak = weakAgainst(t);
-  return (
-    `${ELEMS[t].name}. ` +
-    (strong.length ? `Es muy eficaz contra ${listText(strong)}.` : 'No es muy eficaz contra ningún tipo especial.') +
-    (weak.length ? ` No es muy eficaz contra ${listText(weak)}.` : '')
-  );
-}
 
 /** "¿Quién gana a quién?": which attack type is very effective against which. */
 export function TypeChart({ onClose }: { onClose: () => void }) {
   const [idx, setIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    void say('¿Quién gana a quién? ' + describeType(TYPE_ORDER[0]));
-  }, []);
 
   useEffect(() => {
     listRef.current?.querySelector(`[data-i="${idx}"]`)?.scrollIntoView({ block: 'nearest' });
@@ -37,7 +17,6 @@ export function TypeChart({ onClose }: { onClose: () => void }) {
     if (i < 0 || i >= TYPE_ORDER.length || i === idx) return;
     sfx('move');
     setIdx(i);
-    void say(describeType(TYPE_ORDER[i]));
   };
 
   useInput((e) => {

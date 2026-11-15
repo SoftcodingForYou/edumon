@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useBindings, useInput, useInputSource, type Btn, type InputEvt } from '../system/input';
 import { keyLabel } from '../system/keys';
 import { sfx } from '../system/audio';
-import { say } from '../system/speech';
 import { ELEMS, type Elem } from '../game/elements';
 import { ballURL } from '../art/assets';
 
@@ -23,7 +22,6 @@ export interface Opt {
   icon?: ReactNode;
   sub?: string;
   disabled?: boolean;
-  speak?: string;
   className?: string;
 }
 
@@ -36,16 +34,14 @@ interface MenuProps {
   initial?: number;
   columns?: number;
   className?: string;
-  speakOnFocus?: boolean;
   onFocus?: (i: number) => void;
   render?: (o: Opt, i: number, selected: boolean) => ReactNode;
 }
 
 /** A list (or grid) of options driven by arrows + A/B, mouse and touch. */
-export function Menu({ options, onSelect, onBack, layer, active = true, initial = 0, columns = 1, className, speakOnFocus = true, onFocus, render }: MenuProps) {
+export function Menu({ options, onSelect, onBack, layer, active = true, initial = 0, columns = 1, className, onFocus, render }: MenuProps) {
   const [idx, setIdx] = useState(Math.min(initial, options.length - 1));
   const listRef = useRef<HTMLDivElement>(null);
-  const firstFocus = useRef(true);
 
   useEffect(() => {
     if (idx >= options.length) setIdx(Math.max(0, options.length - 1));
@@ -55,13 +51,6 @@ export function Menu({ options, onSelect, onBack, layer, active = true, initial 
     const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${idx}"]`);
     el?.scrollIntoView?.({ block: 'nearest' });
     onFocus?.(idx);
-    if (active && speakOnFocus && options[idx]) {
-      if (firstFocus.current) {
-        firstFocus.current = false;
-      } else {
-        say(options[idx].speak ?? options[idx].label);
-      }
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx]);
 
@@ -145,29 +134,20 @@ interface TextBoxProps {
   onDone: () => void;
   layer: number;
   auto?: number; // ms to wait after typing before continuing by itself
-  speak?: boolean;
   className?: string;
   children?: ReactNode;
 }
 
 /** Text that appears letter by letter; A (or a tap) continues. */
-export function TextBox({ text, onDone, layer, auto, speak = true, className, children }: TextBoxProps) {
+export function TextBox({ text, onDone, layer, auto, className, children }: TextBoxProps) {
   const [shown, setShown] = useState(0);
-  const [spoken, setSpoken] = useState(!speak);
   const doneRef = useRef(false);
   const full = shown >= text.length;
 
   useEffect(() => {
     setShown(0);
     doneRef.current = false;
-    if (!speak) return;
-    let alive = true;
-    setSpoken(false);
-    void say(text).then(() => alive && setSpoken(true));
-    return () => {
-      alive = false;
-    };
-  }, [text, speak]);
+  }, [text]);
 
   useEffect(() => {
     if (full) return;
@@ -181,13 +161,13 @@ export function TextBox({ text, onDone, layer, auto, speak = true, className, ch
     onDone();
   };
 
-  // Auto-continue only after the text is shown and has been read aloud.
+  // Auto-continue a moment after the whole text is shown.
   useEffect(() => {
-    if (!full || !spoken || auto === undefined) return;
+    if (!full || auto === undefined) return;
     const t = setTimeout(finish, auto);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [full, spoken, auto, text]);
+  }, [full, auto, text]);
 
   const advance = () => {
     if (!full) setShown(text.length);
@@ -359,11 +339,3 @@ export function HpBar({ value, max }: { value: number; max: number }) {
     </div>
   );
 }
-
-/** Spanish names of the letters, read aloud while typing a name. */
-export const LETTER_NAMES: Record<string, string> = {
-  A: 'a', B: 'be', C: 'ce', D: 'de', E: 'e', F: 'efe', G: 'ge', H: 'hache', I: 'i', J: 'jota', K: 'ka', L: 'ele',
-  M: 'eme', N: 'ene', Ñ: 'eñe', O: 'o', P: 'pe', Q: 'cu', R: 'erre', S: 'ese', T: 'te', U: 'u', V: 'uve',
-  W: 'uve doble', X: 'equis', Y: 'i griega', Z: 'zeta', Á: 'a con tilde', É: 'e con tilde', Í: 'i con tilde',
-  Ó: 'o con tilde', Ú: 'u con tilde', Ü: 'u con diéresis', ' ': 'espacio',
-};

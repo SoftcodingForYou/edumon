@@ -7,7 +7,6 @@ import type { Encounter, Outcome } from '../world/world';
 import { BIOME_HABITAT } from '../world/tiles';
 import { avatarBackURL, ballURL, portraitBounds, portraitURL } from '../art/assets';
 import { attackSfx, playMusic, sfx } from '../system/audio';
-import { say } from '../system/speech';
 import { Menu, TextBox, LAYER, TypeBadge, HpBar, BallIcon, type Opt } from './ui';
 import { CreaturePicker } from './CreaturePicker';
 import { AttackFx, KoStars, fxHitDelay } from './AttackFx';
@@ -57,10 +56,6 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
   const started = useRef(false);
   const cbs = useRef({ onSeen, onCaught, onEnd });
   cbs.current = { onSeen, onCaught, onEnd };
-
-  useEffect(() => {
-    if (ui.k === 'menu') say(ui.prompt);
-  }, [ui]);
 
   useEffect(() => {
     if (started.current) return;
@@ -161,7 +156,7 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
     const easyLoop = async () => {
       if (slot.mode === 'normal') await text('Todavía no tienes Edumon para luchar. ¡Lanza la bola estrella!');
       for (;;) {
-        const c = await choose('¿Qué hacemos?', [{ label: 'Lanzar bola', icon: <BallIcon size={30} />, speak: 'Lanzar la bola estrella' }, { label: 'Huir' }]);
+        const c = await choose('¿Qué hacemos?', [{ label: 'Lanzar bola', icon: <BallIcon size={30} /> }, { label: 'Huir' }]);
         if (c === 1) return runAway();
         const res = rollCatch(easyCatchChance(wild.id), Math.random);
         await throwBall(res);
@@ -268,8 +263,8 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
       for (;;) {
         const tname = ELEMS[cur.types[0]].name;
         const act = await choose(`¿Qué hace ${cur.name}?`, [
-          { label: cur.attack, sub: `Tipo ${tname}`, speak: `${cur.attack}. Ataque de tipo ${tname}` },
-          { label: 'Cambiar', speak: 'Cambiar de Edumon' },
+          { label: cur.attack, sub: `Tipo ${tname}` },
+          { label: 'Cambiar' },
           { label: 'Huir' },
         ]);
         if (act === 2) return runAway();
@@ -288,7 +283,7 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
           sfx('faint');
           animWild('tired');
           await text(`¡${wild.name} está K.O.! ¡Es tu oportunidad!`);
-          await choose('¡Lanza la bola estrella!', [{ label: 'Lanzar bola', icon: <BallIcon size={30} />, speak: 'Lanzar la bola estrella' }]);
+          await choose('¡Lanza la bola estrella!', [{ label: 'Lanzar bola', icon: <BallIcon size={30} /> }]);
           await throwBall({ shakes: 3, caught: true });
           return celebrate();
         }

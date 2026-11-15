@@ -21,7 +21,6 @@ export interface SaveSlot {
 export interface Settings {
   sound: boolean;
   music: boolean;
-  voice: boolean;
   keys: KeyBindings;
 }
 
@@ -210,7 +209,7 @@ export function loadWorldData(slotId: string): unknown {
   }
 }
 
-export const DEFAULT_SETTINGS: Settings = { sound: true, music: true, voice: true, keys: { ...DEFAULT_KEYS } };
+export const DEFAULT_SETTINGS: Settings = { sound: true, music: true, keys: { ...DEFAULT_KEYS } };
 
 export function loadSettings(): Settings {
   try {
@@ -220,7 +219,6 @@ export function loadSettings(): Settings {
     return {
       sound: s.sound ?? DEFAULT_SETTINGS.sound,
       music: s.music ?? DEFAULT_SETTINGS.music,
-      voice: s.voice ?? DEFAULT_SETTINGS.voice,
       keys: sanitizeBindings(s.keys),
     };
   } catch {

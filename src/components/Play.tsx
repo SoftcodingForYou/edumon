@@ -14,7 +14,6 @@ import {
 } from '../world/world';
 import { BIOME_HABITAT } from '../world/tiles';
 import { playMusic } from '../system/audio';
-import { say } from '../system/speech';
 import { useBindings, useInputSource } from '../system/input';
 import { keyLabel } from '../system/keys';
 import { WorldView } from './WorldView';
@@ -108,14 +107,12 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
     const t = setInterval(() => {
       const b = biomeOfPlayer(world);
       if (b === lastBiome.current) return;
-      const first = lastBiome.current === -1;
       lastBiome.current = b;
       const name = capitalize(HABITAT_NAMES[BIOME_HABITAT[b]]);
       setZone({ name, n: Date.now() });
-      if (!first && overlay === null) void say(name);
     }, 400);
     return () => clearInterval(t);
-  }, [world, overlay]);
+  }, [world]);
 
   useEffect(() => {
     if (!zone) return;
@@ -203,10 +200,10 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
         <div className="world-menu panel">
           <Menu
             options={[
-              { label: 'Edudex', icon: <BallIcon size={28} />, speak: 'Edudex' },
-              { label: 'Ajustes', icon: <span className="gear">⚙</span>, speak: 'Ajustes' },
-              { label: 'Salir', icon: <span className="door">⇦</span>, speak: 'Salir al inicio' },
-              { label: 'Seguir', icon: <span className="door">▶</span>, speak: 'Seguir jugando' },
+              { label: 'Edudex', icon: <BallIcon size={28} /> },
+              { label: 'Ajustes', icon: <span className="gear">⚙</span> },
+              { label: 'Salir', icon: <span className="door">⇦</span> },
+              { label: 'Seguir', icon: <span className="door">▶</span> },
             ]}
             layer={LAYER.overlay}
             onBack={() => setOverlay(null)}
