@@ -1,6 +1,10 @@
 import { createRoot } from 'react-dom/client';
 import '@fontsource/jersey-10/latin.css';
 import '@fontsource/jersey-10/latin-ext.css';
+import '@fontsource/andika/latin-400.css';
+import '@fontsource/andika/latin-ext-400.css';
+import '@fontsource/andika/latin-700.css';
+import '@fontsource/andika/latin-ext-700.css';
 import './styles.css';
 import { App } from './App';
 import { onFirstInteraction, startInput } from './system/input';

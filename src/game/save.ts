@@ -18,9 +18,14 @@ export interface SaveSlot {
   updated: number;
 }
 
+/** 'fine': a clear font made for children learning to read; 'pixel': the retro pixel font. */
+export type FontStyle = 'fine' | 'pixel';
+
 export interface Settings {
   sound: boolean;
   music: boolean;
+  font: FontStyle;
+  upper: boolean; // show every text in capital letters
   keys: KeyBindings;
 }
 
@@ -209,7 +214,7 @@ export function loadWorldData(slotId: string): unknown {
   }
 }
 
-export const DEFAULT_SETTINGS: Settings = { sound: true, music: true, keys: { ...DEFAULT_KEYS } };
+export const DEFAULT_SETTINGS: Settings = { sound: true, music: true, font: 'fine', upper: false, keys: { ...DEFAULT_KEYS } };
 
 export function loadSettings(): Settings {
   try {
@@ -219,6 +224,8 @@ export function loadSettings(): Settings {
     return {
       sound: s.sound ?? DEFAULT_SETTINGS.sound,
       music: s.music ?? DEFAULT_SETTINGS.music,
+      font: s.font === 'pixel' ? 'pixel' : 'fine',
+      upper: s.upper === true,
       keys: sanitizeBindings(s.keys),
     };
   } catch {

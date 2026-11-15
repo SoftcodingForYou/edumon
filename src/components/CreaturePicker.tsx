@@ -1,7 +1,7 @@
 import { getSpecies, type Species } from '../game/creatures';
 import { effectiveness } from '../game/elements';
 import { portraitURL } from '../art/assets';
-import { Menu, LAYER, TypeBadge, KeyHint, A, Bb } from './ui';
+import { Menu, LAYER, TypeBadge, KeyHint, A, Bb, FitText } from './ui';
 
 interface Props {
   team: number[];
@@ -41,12 +41,12 @@ export function CreaturePicker({ team, wild, exclude, current, title, allowCance
           return (
             <div className={'pick-card' + (sel ? ' sel' : '') + (o.disabled ? ' tired' : '')}>
               <img className="pix" src={portraitURL(s.id)} alt={s.name} draggable={false} />
-              <span className="pick-name">{s.name}</span>
-              <span className="pick-types">
+              <FitText className="pick-name">{s.name}</FitText>
+              <FitText className="pick-types">
                 {s.types.map((t) => (
                   <TypeBadge key={t} type={t} small />
                 ))}
-              </span>
+              </FitText>
               {o.disabled ? (
                 <span className="pick-tag tired">{team[i] === current ? 'Luchando' : 'Cansado'}</span>
               ) : h === 'strong' ? (

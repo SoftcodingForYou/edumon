@@ -27,6 +27,11 @@ export function SettingsPanel({ settings, onChange, onClose, layer = LAYER.dialo
   const options = [
     { label: `Sonidos: ${yesNo(settings.sound)}` },
     { label: `Música: ${yesNo(settings.music)}` },
+    {
+      label: `Letra: ${settings.font === 'pixel' ? 'Píxel' : 'Fina'}`,
+      sub: settings.font === 'pixel' ? 'Letra de videojuego antiguo' : 'Letra clara para aprender a leer',
+    },
+    { label: `Mayúsculas: ${yesNo(settings.upper)}`, sub: settings.upper ? 'TODO EN MAYÚSCULAS' : 'Mayúsculas y minúsculas' },
     { label: 'Teclas', sub: 'Elige qué tecla hace cada cosa' },
     { label: 'Pantalla completa' },
     { label: 'Volver' },
@@ -43,8 +48,10 @@ export function SettingsPanel({ settings, onChange, onClose, layer = LAYER.dialo
           onSelect={(i) => {
             if (i === 0) onChange({ ...settings, sound: !settings.sound });
             else if (i === 1) onChange({ ...settings, music: !settings.music });
-            else if (i === 2) setKeysOpen(true);
-            else if (i === 3) toggleFullscreen();
+            else if (i === 2) onChange({ ...settings, font: settings.font === 'pixel' ? 'fine' : 'pixel' });
+            else if (i === 3) onChange({ ...settings, upper: !settings.upper });
+            else if (i === 4) setKeysOpen(true);
+            else if (i === 5) toggleFullscreen();
             else onClose();
           }}
         />

@@ -23,6 +23,7 @@ The production build is a static site (`dist/`) and can be hosted on any web ser
 
 - **Flechas**: caminar · **A** (Z): aceptar / menú · **B** (X): volver, mantener para correr · **T**: tabla de tipos (¿quién gana a quién?) · **M**: mapa.
 - Todas las teclas se pueden cambiar en *Ajustes → Teclas*; las pistas en pantalla muestran siempre la tecla elegida.
+- Para aprender a leer: *Ajustes → Letra* elige entre la letra «Fina» (clara, pensada para quien empieza a leer) y la letra «Píxel», y *Ajustes → Mayúsculas* lo escribe todo en mayúsculas.
 - On tablets and phones, on-screen arrows and A/B buttons appear (tap «Tipos» / «Mapa» in the corner). Gamepads work too.
 - **Modo normal**: elige un compañero, lucha con tus Edumon (un ataque cada uno, por turnos) y, si ganas, ¡atrápalo con la bola estrella!
 - **Modo fácil**: sin peleas, solo lanza la bola estrella. Cuanto más alto el número en el Edudex, más difícil es atraparlo.

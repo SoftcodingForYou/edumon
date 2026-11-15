@@ -27,9 +27,10 @@ interface Demo {
   slot: SaveSlot;
   screen: string;
   enc: Encounter | null;
+  look: Partial<Settings>; // letter style to try out (never saved)
 }
 
-/** Test/preview hook, e.g. ?demo=battle&sp=25&mode=easy&team=1,4,7 (never saved). */
+/** Test/preview hook, e.g. ?demo=battle&sp=25&mode=easy&team=1,4,7&font=pixel&upper=1 (never saved). */
 function parseDemo(): Demo | null {
   if (typeof location === 'undefined') return null;
   const q = new URLSearchParams(location.search);
@@ -55,7 +56,10 @@ function parseDemo(): Demo | null {
   };
   const sp = Number(q.get('sp') ?? 0);
   const enc = sp ? { sp, uid: null, spot: -1, biome: Number(q.get('biome') ?? 0) } : null;
-  return { slot, screen, enc };
+  const look: Partial<Settings> = {};
+  if (q.get('font') === 'pixel' || q.get('font') === 'fine') look.font = q.get('font') as Settings['font'];
+  if (q.has('upper')) look.upper = q.get('upper') !== '0';
+  return { slot, screen, enc, look };
 }
 
 /** Fit the 768x576 stage into the window (leaving room for touch buttons in portrait). */
@@ -82,7 +86,7 @@ export function App() {
   const [slots, setSlots] = useState<SaveSlot[]>(() => (demo ? [demo.slot] : loadSlots()));
   const slotsRef = useRef(slots);
   slotsRef.current = slots;
-  const [settings, setSettings] = useState<Settings>(loadSettings);
+  const [settings, setSettings] = useState<Settings>(() => ({ ...loadSettings(), ...demo?.look }));
   const [screen, setScreen] = useState<Screen>(() => {
     if (!demo) return { k: 'title' };
     if (demo.screen === 'slots') return { k: 'slots' };
@@ -107,7 +111,7 @@ export function App() {
 
   const changeSettings = (s: Settings) => {
     setSettings(s);
-    saveSettings(s);
+    if (!demo) saveSettings(s);
   };
 
   /** Every change of the Edudex is written to storage right away. */
@@ -141,7 +145,10 @@ export function App() {
 
   return (
     <div className="viewport">
-      <div className="stage" style={{ top: layout.top, transform: `translate(-50%, -50%) scale(${layout.scale})` }}>
+      <div
+        className={'stage font-' + settings.font + (settings.upper ? ' upper' : '')}
+        style={{ top: layout.top, transform: `translate(-50%, -50%) scale(${layout.scale})` }}
+      >
         {screen.k === 'title' && <TitleScreen onStart={() => setScreen({ k: 'slots' })} />}
         {screen.k === 'slots' && (
           <>

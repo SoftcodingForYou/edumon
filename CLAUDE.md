@@ -34,6 +34,10 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   the player chose (or the round A/B/T/M buttons when playing by touch or gamepad); the HUD shows
   Menú, Tipos and Mapa stacked top-right and they can be tapped. Touch D-pad + A/B on
   tablets/phones, gamepads also work.
+- Reading: Ajustes → Letra switches between the clear "Fina" font (Andika, made for beginning
+  readers; the default) and the retro "Píxel" font, and Ajustes → Mayúsculas shows every text in
+  capitals (default off). The goal is to teach reading, especially the creature names, so names
+  are never cut off: they shrink to fit (`FitText` in `ui.tsx`).
 - Battles: every attack type has its own animation and sound (flames, bubbles, leaves, lightning,
   falling rocks, "¡ZAS!"...); very effective hits shake the screen; a knocked-out creature shows
   dizzy stars ("K.O.").
@@ -45,7 +49,7 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - `npm run export-art` regenerates the portrait PNGs in `src/art/` (`001-chispin.png` …, 224×224;
   `npm run export-art -- 1` for the original 56×56). Run it after changing creature art or names.
 - Test URLs (throwaway save, nothing stored): `?demo=world|battle|dex|types|map|slots|new` with
-  optional `&sp=25&mode=easy&biome=4&caught=12&team=1,4,7`. `?debug` exposes the world state as
+  optional `&sp=25&mode=easy&biome=4&caught=12&team=1,4,7&font=pixel&upper=1`. `?debug` exposes the world state as
   `window.__edu.world`.
 
 ## Architecture (src/)
@@ -75,6 +79,8 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - Never hard-code key names in hints: use `<A />`, `<Bb />`, `<Tt />`, `<Mm />`, `<DirKeys />`
   (they follow the player's key bindings and input device).
 - The stage is 768×576 logical px (world canvas 256×192 drawn at 3×), scaled to fit the window.
+- Font sizes in `styles.css` are written as `calc(Npx * var(--fs, 1))`: `--fs` shrinks the wider
+  fine font so both letter styles fit the same boxes. Check new screens in both styles and in capitals.
 - Edudex numbers come from the order of `FAMILIES`, and saves store those numbers: inserting or
   reordering creatures changes what existing saves point to. Keep the order stable.
 - `npm test` checks the roster, rules, saves and world (e.g. every portrait fits its frame,

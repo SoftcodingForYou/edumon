@@ -79,10 +79,10 @@ describe('save slots', () => {
   });
 
   it('stores settings, including the chosen keys', () => {
-    expect(loadSettings()).toEqual({ sound: true, music: true, keys: DEFAULT_KEYS });
+    expect(loadSettings()).toEqual({ sound: true, music: true, font: 'fine', upper: false, keys: DEFAULT_KEYS });
     const keys = rebind(DEFAULT_KEYS, 'a', ' ');
-    saveSettings({ sound: false, music: true, keys });
-    expect(loadSettings()).toEqual({ sound: false, music: true, keys });
+    saveSettings({ sound: false, music: true, font: 'pixel', upper: true, keys });
+    expect(loadSettings()).toEqual({ sound: false, music: true, font: 'pixel', upper: true, keys });
     // broken key data falls back to the defaults
     store.setItem('edumon.ajustes.v1', JSON.stringify({ keys: { a: 'q', b: 'q' } }));
     expect(loadSettings().keys).toEqual(DEFAULT_KEYS);

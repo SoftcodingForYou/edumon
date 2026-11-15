@@ -4,7 +4,7 @@ import { SPECIES, TOTAL, HABITAT_NAMES, dexNumber, getSpecies } from '../game/cr
 import { portraitURL } from '../art/assets';
 import { useInput } from '../system/input';
 import { sfx } from '../system/audio';
-import { LAYER, BallIcon, EyeIcon, KeyHint, A, Bb, TypeBadge, DirKeys } from './ui';
+import { LAYER, BallIcon, EyeIcon, KeyHint, A, Bb, TypeBadge, DirKeys, FitText } from './ui';
 
 const COLS = 6;
 
@@ -98,7 +98,7 @@ export function Dex({ slot, onClose }: { slot: SaveSlot; onClose: () => void }) 
                 <span className="dex-num">{dexNumber(sp.id)}</span>
                 <span className="dex-mark">{caught.has(sp.id) ? <BallIcon size={22} /> : isSeen ? <EyeIcon size={22} /> : null}</span>
                 {isSeen ? <img className="pix dex-img" src={portraitURL(sp.id)} alt={sp.name} draggable={false} /> : <span className="dex-q">?</span>}
-                <span className="dex-name">{isSeen ? sp.name : '???'}</span>
+                <FitText className="dex-name">{isSeen ? sp.name : '???'}</FitText>
               </div>
             );
           })}

@@ -1,6 +1,6 @@
 // Shared UI pieces: option lists, text boxes, badges and icons.
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useBindings, useInput, useInputSource, type Btn, type InputEvt } from '../system/input';
 import { keyLabel } from '../system/keys';
 import { sfx } from '../system/audio';
@@ -97,7 +97,7 @@ export function Menu({ options, onSelect, onBack, layer, active = true, initial 
   );
 
   return (
-    <div ref={listRef} className={'menu ' + (className ?? '')} style={columns > 1 ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)` } : undefined}>
+    <div ref={listRef} className={'menu ' + (className ?? '')} style={columns > 1 ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}>
       {options.map((o, i) => (
         <div
           key={i}
@@ -190,6 +190,37 @@ export function TextBox({ text, onDone, layer, auto, className, children }: Text
       {children}
       {full && auto === undefined && <span className="next">▼</span>}
     </div>
+  );
+}
+
+/**
+ * One line that shrinks (never cuts) to fit its box: creature names are reading practice,
+ * so they must always be shown whole, whatever letter style or capitals the player chose.
+ */
+export function FitText({ children, className }: { children: ReactNode; className?: string }) {
+  const outer = useRef<HTMLSpanElement>(null);
+  const inner = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const o = outer.current;
+    const i = inner.current;
+    if (!o || !i) return;
+    const fit = () => {
+      const k = Math.min(1, o.clientWidth / Math.max(1, i.offsetWidth));
+      i.style.transform = k < 0.995 ? `scale(${k})` : '';
+    };
+    fit();
+    // Fires again when the font finishes loading or the letter style changes.
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(fit) : null;
+    ro?.observe(i);
+    ro?.observe(o);
+    return () => ro?.disconnect();
+  }, [children]);
+  return (
+    <span ref={outer} className={'fit ' + (className ?? '')}>
+      <span ref={inner} className="fit-in">
+        {children}
+      </span>
+    </span>
   );
 }
 

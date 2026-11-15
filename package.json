@@ -13,6 +13,7 @@
     "export-art": "vite-node scripts/export-art.ts"
   },
   "dependencies": {
+    "@fontsource/andika": "^5.3.0",
     "@fontsource/jersey-10": "^5.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
