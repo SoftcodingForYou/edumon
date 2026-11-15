@@ -26,6 +26,16 @@ describe('key bindings', () => {
     expect(sanitizeBindings({ a: 'Escape' }).a).toBe('z');
     expect(sanitizeBindings({ types: 'z' })).toEqual(DEFAULT_KEYS); // duplicate of A
   });
+
+  it('gives buttons added later (Edudex) a key without losing the chosen ones', () => {
+    const old = { up: 'w', down: 's', left: 'a', right: 'd', a: 'j', b: 'k', types: 't', map: 'm' };
+    expect(sanitizeBindings(old)).toEqual({ ...old, dex: 'e' });
+    // the player already used E for something else: Edudex gets a free key
+    const taken = sanitizeBindings({ ...old, types: 'e' });
+    expect(taken.types).toBe('e');
+    expect(new Set(Object.values(taken)).size).toBe(BTN_ORDER.length);
+    expect(taken.dex).not.toBe('e');
+  });
 });
 
 describe('type chart overview', () => {

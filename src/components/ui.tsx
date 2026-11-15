@@ -320,7 +320,7 @@ export function KeyHint({ children }: { children: ReactNode }) {
 
 /**
  * The key to press, as the player chose it ("Z", "Espacio"...). With a touch
- * screen or gamepad the round A / B / T buttons are shown instead.
+ * screen or gamepad the round A / B / E / T / M buttons are shown instead.
  * `typing`: on the name screen letter keys write letters, so Intro / Retroceso act as A / B.
  */
 export function KeyCap({ btn, typing = false }: { btn: Btn; typing?: boolean }) {
@@ -329,6 +329,7 @@ export function KeyCap({ btn, typing = false }: { btn: Btn; typing?: boolean }) 
   if (source !== 'keyboard') {
     if (btn === 'a') return <span className="btn-a">A</span>;
     if (btn === 'b') return <span className="btn-b">B</span>;
+    if (btn === 'dex') return <span className="btn-t btn-dex">E</span>;
     if (btn === 'types') return <span className="btn-t">T</span>;
     if (btn === 'map') return <span className="btn-t">M</span>;
     return <span className="keycap">{{ up: '▲', down: '▼', left: '◀', right: '▶' }[btn]}</span>;
@@ -340,6 +341,7 @@ export function KeyCap({ btn, typing = false }: { btn: Btn; typing?: boolean }) 
 
 export const A = () => <KeyCap btn="a" />;
 export const Bb = () => <KeyCap btn="b" />;
+export const Ee = () => <KeyCap btn="dex" />;
 export const Tt = () => <KeyCap btn="types" />;
 export const Mm = () => <KeyCap btn="map" />;
 

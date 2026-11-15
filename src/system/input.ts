@@ -1,5 +1,5 @@
 // One tiny input system for keyboard, touch buttons and gamepads.
-// Buttons: arrows, A, B, T (type chart) and M (map). Keyboard keys are configurable.
+// Buttons: arrows, A, B, E (Edudex), T (type chart) and M (map). Keyboard keys are configurable.
 
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { DEFAULT_KEYS, FALLBACK_KEYS, RESERVED_KEYS, normalizeKey, type Btn, type DirBtn, type KeyBindings } from './keys';
@@ -232,8 +232,8 @@ function clearAll() {
   tapped = null;
 }
 
-// Gamepad support (standard mapping): A = button 0, B = button 1, Tipos = Y, Mapa = X / Select, d-pad / left stick.
-const padPrev: Record<Btn, boolean> = { up: false, down: false, left: false, right: false, a: false, b: false, types: false, map: false };
+// Gamepad support (standard mapping): A = button 0, B = button 1, Tipos = Y, Mapa = X, Edudex = Select, d-pad / left stick.
+const padPrev: Record<Btn, boolean> = { up: false, down: false, left: false, right: false, a: false, b: false, dex: false, types: false, map: false };
 function pollGamepads() {
   const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
   const gp = Array.from(pads).find((p) => p && p.connected);
@@ -244,8 +244,9 @@ function pollGamepads() {
     const now: Record<Btn, boolean> = {
       a: btn(0),
       b: btn(1),
+      dex: btn(8),
       types: btn(3),
-      map: btn(2) || btn(8),
+      map: btn(2),
       up: btn(12) || ay < -0.5,
       down: btn(13) || ay > 0.5,
       left: btn(14) || ax < -0.5,

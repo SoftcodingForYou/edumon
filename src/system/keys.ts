@@ -1,10 +1,10 @@
 // Game buttons and their (configurable) keyboard keys. No React, no DOM.
 
-export type Btn = 'up' | 'down' | 'left' | 'right' | 'a' | 'b' | 'types' | 'map';
+export type Btn = 'up' | 'down' | 'left' | 'right' | 'a' | 'b' | 'dex' | 'types' | 'map';
 export type DirBtn = 'up' | 'down' | 'left' | 'right';
 export type KeyBindings = Record<Btn, string>;
 
-export const BTN_ORDER: Btn[] = ['up', 'down', 'left', 'right', 'a', 'b', 'types', 'map'];
+export const BTN_ORDER: Btn[] = ['up', 'down', 'left', 'right', 'a', 'b', 'dex', 'types', 'map'];
 
 export const BTN_NAMES: Record<Btn, string> = {
   up: 'Arriba',
@@ -13,6 +13,7 @@ export const BTN_NAMES: Record<Btn, string> = {
   right: 'Derecha',
   a: 'A: aceptar y menú',
   b: 'B: volver y correr',
+  dex: 'Edudex',
   types: 'Tabla de tipos',
   map: 'Mapa',
 };
@@ -24,6 +25,7 @@ export const DEFAULT_KEYS: KeyBindings = {
   right: 'ArrowRight',
   a: 'z',
   b: 'x',
+  dex: 'e',
   types: 't',
   map: 'm',
 };
@@ -73,13 +75,27 @@ export function keyLabel(key: string): string {
   return key;
 }
 
+/** Buttons added in later versions: older saved settings don't have a key for them yet. */
+const ADDED_LATER: Btn[] = ['dex'];
+/** Free keys for those buttons when their default is already taken. */
+const SPARE_KEYS = 'edfgcvrybnhjkluiop'.split('');
+
 /** Validate stored bindings; anything odd falls back to the defaults. */
 export function sanitizeBindings(raw: unknown): KeyBindings {
   const out: KeyBindings = { ...DEFAULT_KEYS };
+  const missing: Btn[] = [];
   if (raw && typeof raw === 'object') {
     for (const b of BTN_ORDER) {
       const v = (raw as Record<string, unknown>)[b];
       if (typeof v === 'string' && v.length > 0 && v.length <= 20 && !RESERVED_KEYS.includes(v)) out[b] = normalizeKey(v);
+      else if (v === undefined && ADDED_LATER.includes(b)) missing.push(b);
+    }
+    // A new button keeps its default key unless the player already uses it for something else.
+    const stored = BTN_ORDER.filter((b) => !missing.includes(b)).map((b) => out[b]);
+    for (const b of missing) {
+      if (!stored.includes(out[b])) continue;
+      const free = SPARE_KEYS.find((k) => !Object.values(out).includes(k));
+      if (free) out[b] = free;
     }
   }
   return new Set(Object.values(out)).size === BTN_ORDER.length ? out : { ...DEFAULT_KEYS };

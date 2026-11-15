@@ -11,17 +11,18 @@ interface Props {
   paused: boolean;
   onEncounter: (e: Encounter) => void;
   onMenu: () => void;
+  onDex: () => void;
   onTypes: () => void;
   onMap: () => void;
   onAutosave: () => void;
 }
 
 /** The overworld canvas with its game loop. */
-export function WorldView({ world, avatar, paused, onEncounter, onMenu, onTypes, onMap, onAutosave }: Props) {
+export function WorldView({ world, avatar, paused, onEncounter, onMenu, onDex, onTypes, onMap, onAutosave }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pausedRef = useRef(paused);
-  const cb = useRef({ onEncounter, onMenu, onTypes, onMap, onAutosave });
-  cb.current = { onEncounter, onMenu, onTypes, onMap, onAutosave };
+  const cb = useRef({ onEncounter, onMenu, onDex, onTypes, onMap, onAutosave });
+  cb.current = { onEncounter, onMenu, onDex, onTypes, onMap, onAutosave };
   pausedRef.current = paused;
 
   useInput(
@@ -29,6 +30,9 @@ export function WorldView({ world, avatar, paused, onEncounter, onMenu, onTypes,
       if (e.btn === 'a') {
         sfx('ok');
         cb.current.onMenu();
+      } else if (e.btn === 'dex') {
+        sfx('ok');
+        cb.current.onDex();
       } else if (e.btn === 'types') {
         sfx('ok');
         cb.current.onTypes();

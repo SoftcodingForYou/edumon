@@ -22,7 +22,7 @@ import { Dex } from './Dex';
 import { SettingsPanel } from './SettingsPanel';
 import { TypeChart } from './TypeChart';
 import { WorldMapView } from './WorldMapView';
-import { Menu, TextBox, LAYER, BallIcon, EyeIcon, A, Tt, Mm } from './ui';
+import { Menu, TextBox, LAYER, BallIcon, EyeIcon, A, Ee, Tt, Mm } from './ui';
 
 type Overlay =
   | { k: 'welcome' }
@@ -162,6 +162,7 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
         paused={overlay !== null}
         onEncounter={(enc) => setOverlay({ k: 'transition', enc })}
         onMenu={() => setOverlay({ k: 'menu' })}
+        onDex={() => setOverlay({ k: 'dex' })}
         onTypes={() => setOverlay({ k: 'types' })}
         onMap={() => setOverlay({ k: 'map' })}
         onAutosave={() => saveWorld.current()}
@@ -175,6 +176,9 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
         <div className="hud-keys">
           <span className="hud-box hud-key" onClick={() => openIfFree({ k: 'menu' })}>
             <A /> Menú
+          </span>
+          <span className="hud-box hud-key" onClick={() => openIfFree({ k: 'dex' })}>
+            <Ee /> Edudex
           </span>
           <span className="hud-box hud-key" onClick={() => openIfFree({ k: 'types' })}>
             <Tt /> Tipos
@@ -200,7 +204,6 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
         <div className="world-menu panel">
           <Menu
             options={[
-              { label: 'Edudex', icon: <BallIcon size={28} /> },
               { label: 'Ajustes', icon: <span className="gear">⚙</span> },
               { label: 'Salir', icon: <span className="door">⇦</span> },
               { label: 'Seguir', icon: <span className="door">▶</span> },
@@ -208,9 +211,8 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
             layer={LAYER.overlay}
             onBack={() => setOverlay(null)}
             onSelect={(i) => {
-              if (i === 0) setOverlay({ k: 'dex' });
-              else if (i === 1) setOverlay({ k: 'settings' });
-              else if (i === 2) {
+              if (i === 0) setOverlay({ k: 'settings' });
+              else if (i === 1) {
                 saveWorld.current();
                 onExit();
               } else setOverlay(null);
@@ -220,7 +222,7 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
         </div>
       )}
 
-      {overlay?.k === 'dex' && <Dex slot={slot} onClose={() => setOverlay({ k: 'menu' })} />}
+      {overlay?.k === 'dex' && <Dex slot={slot} onClose={() => setOverlay(null)} />}
       {overlay?.k === 'types' && <TypeChart onClose={() => setOverlay(null)} />}
       {overlay?.k === 'map' && <WorldMapView world={world} caught={slot.caught} avatar={slot.avatar} onClose={() => setOverlay(null)} />}
       {overlay?.k === 'settings' && <SettingsPanel settings={settings} onChange={onSettings} onClose={() => setOverlay({ k: 'menu' })} />}

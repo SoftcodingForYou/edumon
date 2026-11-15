@@ -1763,6 +1763,9 @@ body {
   background: var(--sel);
 }
 
+.btn-dex {
+  background: #e0882a !important;
+}
 .btn-t {
   display: inline-flex;
   align-items: center;

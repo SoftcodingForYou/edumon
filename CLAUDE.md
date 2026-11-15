@@ -29,10 +29,11 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - In the world, creatures use generic sprites (land, bird, water, bug, ghost, plant) so their
   looks stay secret; battles and the Edudex show full-body portraits.
 - Controls are minimal: arrows, A (default Z; Enter/Space also work), B (default X; Esc/Backspace
-  also work; hold B to run), T = type chart ("Tipos", who is very effective against whom) and
-  M = world map. All keys can be changed in Ajustes → Teclas. On-screen hints always show the key
-  the player chose (or the round A/B/T/M buttons when playing by touch or gamepad); the HUD shows
-  Menú, Tipos and Mapa stacked top-right and they can be tapped. Touch D-pad + A/B on
+  also work; hold B to run), E = Edudex, T = type chart ("Tipos", who is very effective against
+  whom) and M = world map. All keys can be changed in Ajustes → Teclas. On-screen hints always show
+  the key the player chose (or the round A/B/E/T/M buttons when playing by touch or gamepad); the HUD
+  shows Menú, Edudex, Tipos and Mapa stacked top-right and they can be tapped. The in-game menu only
+  manages the game and its settings (Ajustes, Salir, Seguir); the Edudex has its own shortcut. Touch D-pad + A/B on
   tablets/phones, gamepads also work.
 - Reading: Ajustes → Letra switches between the clear "Fina" font (Andika, made for beginning
   readers; the default) and the retro "Píxel" font, and Ajustes → Mayúsculas shows every text in
@@ -78,7 +79,7 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - All player-facing text is Spanish, short and encouraging. There is no voice-over (the client
   removed text-to-speech because it didn't sound human); don't add it back.
 - Every screen/overlay listens with `useInput(handler, LAYER.x)`; the highest layer wins.
-- Never hard-code key names in hints: use `<A />`, `<Bb />`, `<Tt />`, `<Mm />`, `<DirKeys />`
+- Never hard-code key names in hints: use `<A />`, `<Bb />`, `<Ee />`, `<Tt />`, `<Mm />`, `<DirKeys />`
   (they follow the player's key bindings and input device).
 - The stage is 768×576 logical px (world canvas 256×192 drawn at 3×), scaled to fit the window.
 - Font sizes in `styles.css` are written as `calc(Npx * var(--fs, 1))`: `--fs` shrinks the wider

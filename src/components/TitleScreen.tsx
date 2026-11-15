@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useInput } from '../system/input';
 import { playMusic, sfx } from '../system/audio';
 import { ballURL, genericURL } from '../art/assets';
-import { LAYER, A, Bb, Tt, Mm, DirKeys } from './ui';
+import { LAYER, A, Bb, Ee, Tt, Mm, DirKeys } from './ui';
 
 export function TitleScreen({ onStart }: { onStart: () => void }) {
   useEffect(() => {
@@ -46,7 +46,7 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
       </p>
       <p className="keys-help">
         <DirKeys pair="ud" />
-        <DirKeys pair="lr" /> caminar · <A /> aceptar · <Bb /> volver · <Tt /> tipos · <Mm /> mapa
+        <DirKeys pair="lr" /> caminar · <A /> aceptar · <Bb /> volver · <Ee /> edudex · <Tt /> tipos · <Mm /> mapa
       </p>
     </div>
   );

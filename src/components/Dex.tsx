@@ -27,6 +27,12 @@ export function Dex({ slot, onClose }: { slot: SaveSlot; onClose: () => void }) 
   };
 
   useInput((e) => {
+    if (e.btn === 'dex') {
+      // the Edudex key closes it again, like M closes the map
+      sfx('back');
+      onClose();
+      return;
+    }
     if (detail) {
       if (e.btn === 'left' || e.btn === 'up') move(-1);
       else if (e.btn === 'right' || e.btn === 'down') move(1);
