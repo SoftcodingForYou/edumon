@@ -319,17 +319,36 @@ export function KeyHint({ children }: { children: ReactNode }) {
   return <div className="keyhint">{children}</div>;
 }
 
+/** ✓ for the A (yes / continue) button on touch screens. */
+export function CheckMark({ size = '0.9em' }: { size?: number | string }) {
+  return (
+    <svg className="mark" width={size} height={size} viewBox="0 0 16 16" aria-label="sí">
+      <path d="M2.5 8.5 L6.5 12.5 L13.5 3.5" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** ✗ for the B (no / back) button on touch screens. */
+export function CrossMark({ size = '0.9em' }: { size?: number | string }) {
+  return (
+    <svg className="mark" width={size} height={size} viewBox="0 0 16 16" aria-label="no">
+      <path d="M3.5 3.5 L12.5 12.5 M12.5 3.5 L3.5 12.5" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /**
  * The key to press, as the player chose it ("Z", "Espacio"...). With a touch
- * screen or gamepad the round A / B / ☰ / E / T / M buttons are shown instead.
+ * screen the round ✓ / ✗ / ☰ / E / T / M buttons are shown instead (A / B on a gamepad).
  * `typing`: on the name screen letter keys write letters, so Intro / Retroceso act as A / B.
  */
 export function KeyCap({ btn, typing = false }: { btn: Btn; typing?: boolean }) {
   const keys = useBindings();
   const source = useInputSource();
   if (source !== 'keyboard') {
-    if (btn === 'a') return <span className="btn-a">A</span>;
-    if (btn === 'b') return <span className="btn-b">B</span>;
+    // Touch screens show ✓ / ✗ (letters mean nothing to small children); gamepads keep their A / B.
+    if (btn === 'a') return source === 'touch' ? <span className="btn-a yes"><CheckMark /></span> : <span className="btn-a">A</span>;
+    if (btn === 'b') return source === 'touch' ? <span className="btn-b no"><CrossMark /></span> : <span className="btn-b">B</span>;
     if (btn === 'menu') return <span className="btn-t btn-menu">☰</span>;
     if (btn === 'dex') return <span className="btn-t btn-dex">E</span>;
     if (btn === 'types') return <span className="btn-t">T</span>;

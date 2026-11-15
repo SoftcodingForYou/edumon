@@ -28,15 +28,15 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   beaches (water creatures; no swimming), two volcanoes, lake with island, river, forest.
 - In the world, creatures use generic sprites (land, bird, water, bug, ghost, plant) so their
   looks stay secret; battles and the Edudex show full-body portraits.
-- Controls are minimal: arrows, A (default Z), B (default X; hold B to run), Q = menu (its own
+- Controls are minimal: arrows, A (default Space, shown as "Espacio"), B (default X; hold B to run), Q = menu (its own
   key, never the action button), E = Edudex, T = type chart ("Tipos", who is very effective
   against whom) and M = world map. Every button answers to exactly one key (no extra fallback
   keys); the only exception is typing a name, where Intro confirms, Esc goes back and Retroceso
   erases (letter keys write letters there). All keys can be changed in Ajustes → Teclas. On-screen hints always show
-  the key the player chose (or the round A/B/☰/E/T/M buttons when playing by touch or gamepad); the HUD
+  the key the player chose (or round buttons when playing by touch: ✓ for A, ✗ for B, ☰/E/T/M; a gamepad shows A/B); the HUD
   shows Menú, Edudex, Tipos and Mapa stacked top-right and they can be tapped. The in-game menu only
-  manages the game and its settings (Ajustes, Salir, Seguir); the Edudex has its own shortcut. Touch D-pad + A/B on
-  tablets/phones, gamepads also work.
+  manages the game and its settings (Ajustes, Salir, Seguir); the Edudex has its own shortcut. Touch D-pad + ✓ (A, green) / ✗ (B, red)
+  buttons on tablets/phones — no letters, they confuse young children; gamepads also work.
 - Reading: Ajustes → Letra switches between the clear "Fina" font (Andika, made for beginning
   readers; the default) and the retro "Píxel" font, and Ajustes → Mayúsculas shows every text in
   capitals (default off). The goal is to teach reading, especially the creature names, so names

@@ -10,7 +10,7 @@ describe('key bindings', () => {
   it('swaps keys instead of giving two buttons the same key', () => {
     const k = rebind(DEFAULT_KEYS, 'a', 'x');
     expect(k.a).toBe('x');
-    expect(k.b).toBe('z');
+    expect(k.b).toBe(' ');
     expect(rebind(DEFAULT_KEYS, 'map', 'P').map).toBe('p');
     expect(rebind(DEFAULT_KEYS, 'map', 'Q')).toMatchObject({ map: 'q', menu: 'm' }); // Q was the menu key
   });
@@ -37,8 +37,16 @@ describe('key bindings', () => {
 
   it('ignores broken or reserved stored keys', () => {
     expect(sanitizeBindings(null)).toEqual(DEFAULT_KEYS);
-    expect(sanitizeBindings({ a: 'Escape' }).a).toBe('z');
-    expect(sanitizeBindings({ types: 'z' })).toEqual(DEFAULT_KEYS); // duplicate of A
+    expect(sanitizeBindings({ a: 'Escape' }).a).toBe(' ');
+    expect(sanitizeBindings({ types: ' ' })).toEqual(DEFAULT_KEYS); // duplicate of A
+  });
+
+  it('uses Space for A, also for players who kept the old default Z', () => {
+    expect(DEFAULT_KEYS.a).toBe(' ');
+    const oldDefaults = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', a: 'z', b: 'x', types: 't', map: 'm' };
+    expect(sanitizeBindings(oldDefaults)).toEqual(DEFAULT_KEYS);
+    // someone who chose their own keys keeps Z
+    expect(sanitizeBindings({ ...oldDefaults, b: 'c' })).toMatchObject({ a: 'z', b: 'c' });
   });
 
   it('gives buttons added later (Menú, Edudex) a key without losing the chosen ones', () => {

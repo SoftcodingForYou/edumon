@@ -24,7 +24,7 @@ export const DEFAULT_KEYS: KeyBindings = {
   down: 'ArrowDown',
   left: 'ArrowLeft',
   right: 'ArrowRight',
-  a: 'z',
+  a: ' ',
   b: 'x',
   menu: 'q',
   dex: 'e',
@@ -93,6 +93,8 @@ export function sanitizeBindings(raw: unknown): KeyBindings {
       if (typeof v === 'string' && v.length > 0 && v.length <= 20 && !RESERVED_KEYS.includes(v)) out[b] = normalizeKey(v);
       else if (v === undefined && ADDED_LATER.includes(b)) missing.push(b);
     }
+    // Settings saved with the old default action key (Z) and nothing else changed get the new one (Space).
+    if (out.a === 'z' && BTN_ORDER.every((b) => b === 'a' || missing.includes(b) || out[b] === DEFAULT_KEYS[b])) out.a = DEFAULT_KEYS.a;
     // A new button keeps its default key unless the player already uses it for something else.
     const stored = BTN_ORDER.filter((b) => !missing.includes(b)).map((b) => out[b]);
     for (const b of missing) {

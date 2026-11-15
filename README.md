@@ -21,10 +21,10 @@ The production build is a static site (`dist/`) and can be hosted on any web ser
 
 ## How to play
 
-- **Flechas**: caminar · **A** (Z): aceptar · **B** (X): volver, mantener para correr · **Q**: menú · **E**: Edudex · **T**: tabla de tipos (¿quién gana a quién?) · **M**: mapa.
+- **Flechas**: caminar · **A** (Espacio): aceptar · **B** (X): volver, mantener para correr · **Q**: menú · **E**: Edudex · **T**: tabla de tipos (¿quién gana a quién?) · **M**: mapa.
 - Cada acción tiene una sola tecla, y todas se pueden cambiar en *Ajustes → Teclas*; las pistas en pantalla muestran siempre la tecla elegida. Al escribir el nombre, *Intro* confirma y *Esc* vuelve.
 - Para aprender a leer: *Ajustes → Letra* elige entre la letra «Fina» (clara, pensada para quien empieza a leer) y la letra «Píxel», y *Ajustes → Mayúsculas* lo escribe todo en mayúsculas.
-- On tablets and phones, on-screen arrows and A/B buttons appear (tap «Menú» / «Edudex» / «Tipos» / «Mapa» in the corner). Gamepads work too.
+- On tablets and phones, on-screen arrows and ✓ (aceptar) / ✗ (volver) buttons appear (tap «Menú» / «Edudex» / «Tipos» / «Mapa» in the corner). Gamepads work too.
 - **Modo normal**: elige un compañero, lucha con tus Edumón (un ataque cada uno, por turnos) y, si ganas, ¡atrápalo con la bola estrella!
 - **Modo fácil**: sin peleas, solo lanza la bola estrella. Cuanto más alto el número en el Edudex, más difícil es atraparlo.
 - Los Edumón aparecen por el mundo y se esconden en la hierba alta. Los legendarios esperan en lugares especiales: el cráter del gran volcán, la cumbre nevada, la meseta de la montaña, el santuario del bosque, la isla del lago y la isla volcánica.

@@ -1484,13 +1484,28 @@ body {
 .ab .a {
   right: 0;
   top: 0;
-  background: rgba(228, 74, 64, 0.85);
+  background: rgba(52, 168, 72, 0.9);
 }
 
 .ab .b {
   left: 0;
   bottom: 0;
-  background: rgba(58, 114, 224, 0.85);
+  background: rgba(220, 64, 56, 0.9);
+}
+.ab .tpad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* ✓ / ✗ hint buttons when playing by touch */
+.btn-a.yes {
+  background: #34a848;
+}
+.btn-b.no {
+  background: var(--bad);
+}
+.mark {
+  display: block;
 }
 
 /* ------------------------------------------------------------ keyframes */
