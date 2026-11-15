@@ -1,18 +1,19 @@
 // Game buttons and their (configurable) keyboard keys. No React, no DOM.
 
-export type Btn = 'up' | 'down' | 'left' | 'right' | 'a' | 'b' | 'dex' | 'types' | 'map';
+export type Btn = 'up' | 'down' | 'left' | 'right' | 'a' | 'b' | 'menu' | 'dex' | 'types' | 'map';
 export type DirBtn = 'up' | 'down' | 'left' | 'right';
 export type KeyBindings = Record<Btn, string>;
 
-export const BTN_ORDER: Btn[] = ['up', 'down', 'left', 'right', 'a', 'b', 'dex', 'types', 'map'];
+export const BTN_ORDER: Btn[] = ['up', 'down', 'left', 'right', 'a', 'b', 'menu', 'dex', 'types', 'map'];
 
 export const BTN_NAMES: Record<Btn, string> = {
   up: 'Arriba',
   down: 'Abajo',
   left: 'Izquierda',
   right: 'Derecha',
-  a: 'A: aceptar y menú',
+  a: 'A: aceptar',
   b: 'B: volver y correr',
+  menu: 'Menú',
   dex: 'Edudex',
   types: 'Tabla de tipos',
   map: 'Mapa',
@@ -25,6 +26,7 @@ export const DEFAULT_KEYS: KeyBindings = {
   right: 'ArrowRight',
   a: 'z',
   b: 'x',
+  menu: 'q',
   dex: 'e',
   types: 't',
   map: 'm',
@@ -76,9 +78,9 @@ export function keyLabel(key: string): string {
 }
 
 /** Buttons added in later versions: older saved settings don't have a key for them yet. */
-const ADDED_LATER: Btn[] = ['dex'];
+const ADDED_LATER: Btn[] = ['menu', 'dex'];
 /** Free keys for those buttons when their default is already taken. */
-const SPARE_KEYS = 'edfgcvrybnhjkluiop'.split('');
+const SPARE_KEYS = 'qedfgcvrybnhjkluiop'.split('');
 
 /** Validate stored bindings; anything odd falls back to the defaults. */
 export function sanitizeBindings(raw: unknown): KeyBindings {

@@ -11,7 +11,8 @@ describe('key bindings', () => {
     const k = rebind(DEFAULT_KEYS, 'a', 'x');
     expect(k.a).toBe('x');
     expect(k.b).toBe('z');
-    expect(rebind(DEFAULT_KEYS, 'map', 'Q').map).toBe('q');
+    expect(rebind(DEFAULT_KEYS, 'map', 'P').map).toBe('p');
+    expect(rebind(DEFAULT_KEYS, 'map', 'Q')).toMatchObject({ map: 'q', menu: 'm' }); // Q was the menu key
   });
 
   it('shows friendly key names', () => {
@@ -27,9 +28,9 @@ describe('key bindings', () => {
     expect(sanitizeBindings({ types: 'z' })).toEqual(DEFAULT_KEYS); // duplicate of A
   });
 
-  it('gives buttons added later (Edudex) a key without losing the chosen ones', () => {
+  it('gives buttons added later (Menú, Edudex) a key without losing the chosen ones', () => {
     const old = { up: 'w', down: 's', left: 'a', right: 'd', a: 'j', b: 'k', types: 't', map: 'm' };
-    expect(sanitizeBindings(old)).toEqual({ ...old, dex: 'e' });
+    expect(sanitizeBindings(old)).toEqual({ ...old, menu: 'q', dex: 'e' });
     // the player already used E for something else: Edudex gets a free key
     const taken = sanitizeBindings({ ...old, types: 'e' });
     expect(taken.types).toBe('e');

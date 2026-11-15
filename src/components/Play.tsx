@@ -22,7 +22,7 @@ import { Dex } from './Dex';
 import { SettingsPanel } from './SettingsPanel';
 import { TypeChart } from './TypeChart';
 import { WorldMapView } from './WorldMapView';
-import { Menu, TextBox, LAYER, BallIcon, EyeIcon, A, Ee, Tt, Mm } from './ui';
+import { Menu, TextBox, LAYER, BallIcon, EyeIcon, Qq, Ee, Tt, Mm } from './ui';
 
 type Overlay =
   | { k: 'welcome' }
@@ -175,7 +175,7 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
         </span>
         <div className="hud-keys">
           <span className="hud-box hud-key" onClick={() => openIfFree({ k: 'menu' })}>
-            <A /> Menú
+            <Qq /> Menú
           </span>
           <span className="hud-box hud-key" onClick={() => openIfFree({ k: 'dex' })}>
             <Ee /> Edudex
@@ -209,6 +209,7 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
               { label: 'Seguir', icon: <span className="door">▶</span> },
             ]}
             layer={LAYER.overlay}
+            closeBtn="menu"
             onBack={() => setOverlay(null)}
             onSelect={(i) => {
               if (i === 0) setOverlay({ k: 'settings' });

@@ -27,7 +27,7 @@ export function WorldView({ world, avatar, paused, onEncounter, onMenu, onDex, o
 
   useInput(
     (e) => {
-      if (e.btn === 'a') {
+      if (e.btn === 'menu') {
         sfx('ok');
         cb.current.onMenu();
       } else if (e.btn === 'dex') {

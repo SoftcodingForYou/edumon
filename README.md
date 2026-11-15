@@ -21,7 +21,7 @@ The production build is a static site (`dist/`) and can be hosted on any web ser
 
 ## How to play
 
-- **Flechas**: caminar · **A** (Z): aceptar / menú · **B** (X): volver, mantener para correr · **E**: Edudex · **T**: tabla de tipos (¿quién gana a quién?) · **M**: mapa.
+- **Flechas**: caminar · **A** (Z): aceptar · **B** (X): volver, mantener para correr · **Q**: menú · **E**: Edudex · **T**: tabla de tipos (¿quién gana a quién?) · **M**: mapa.
 - Todas las teclas se pueden cambiar en *Ajustes → Teclas*; las pistas en pantalla muestran siempre la tecla elegida.
 - Para aprender a leer: *Ajustes → Letra* elige entre la letra «Fina» (clara, pensada para quien empieza a leer) y la letra «Píxel», y *Ajustes → Mayúsculas* lo escribe todo en mayúsculas.
 - On tablets and phones, on-screen arrows and A/B buttons appear (tap «Menú» / «Edudex» / «Tipos» / «Mapa» in the corner). Gamepads work too.

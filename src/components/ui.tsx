@@ -35,11 +35,12 @@ interface MenuProps {
   columns?: number;
   className?: string;
   onFocus?: (i: number) => void;
+  closeBtn?: Btn; // another button that closes the menu like B (e.g. the menu key itself)
   render?: (o: Opt, i: number, selected: boolean) => ReactNode;
 }
 
 /** A list (or grid) of options driven by arrows + A/B, mouse and touch. */
-export function Menu({ options, onSelect, onBack, layer, active = true, initial = 0, columns = 1, className, onFocus, render }: MenuProps) {
+export function Menu({ options, onSelect, onBack, layer, active = true, initial = 0, columns = 1, className, onFocus, closeBtn, render }: MenuProps) {
   const [idx, setIdx] = useState(Math.min(initial, options.length - 1));
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -87,7 +88,7 @@ export function Menu({ options, onSelect, onBack, layer, active = true, initial 
       else if (e.btn === 'left') move(columns > 1 ? -1 : 0);
       else if (e.btn === 'right') move(columns > 1 ? 1 : 0);
       else if (e.btn === 'a') choose(idx);
-      else if (e.btn === 'b' && onBack) {
+      else if ((e.btn === 'b' || (closeBtn && e.btn === closeBtn)) && onBack) {
         sfx('back');
         onBack();
       }
@@ -320,7 +321,7 @@ export function KeyHint({ children }: { children: ReactNode }) {
 
 /**
  * The key to press, as the player chose it ("Z", "Espacio"...). With a touch
- * screen or gamepad the round A / B / E / T / M buttons are shown instead.
+ * screen or gamepad the round A / B / ☰ / E / T / M buttons are shown instead.
  * `typing`: on the name screen letter keys write letters, so Intro / Retroceso act as A / B.
  */
 export function KeyCap({ btn, typing = false }: { btn: Btn; typing?: boolean }) {
@@ -329,6 +330,7 @@ export function KeyCap({ btn, typing = false }: { btn: Btn; typing?: boolean }) 
   if (source !== 'keyboard') {
     if (btn === 'a') return <span className="btn-a">A</span>;
     if (btn === 'b') return <span className="btn-b">B</span>;
+    if (btn === 'menu') return <span className="btn-t btn-menu">☰</span>;
     if (btn === 'dex') return <span className="btn-t btn-dex">E</span>;
     if (btn === 'types') return <span className="btn-t">T</span>;
     if (btn === 'map') return <span className="btn-t">M</span>;
@@ -341,6 +343,7 @@ export function KeyCap({ btn, typing = false }: { btn: Btn; typing?: boolean }) 
 
 export const A = () => <KeyCap btn="a" />;
 export const Bb = () => <KeyCap btn="b" />;
+export const Qq = () => <KeyCap btn="menu" />;
 export const Ee = () => <KeyCap btn="dex" />;
 export const Tt = () => <KeyCap btn="types" />;
 export const Mm = () => <KeyCap btn="map" />;
