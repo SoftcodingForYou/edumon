@@ -32,17 +32,11 @@ export const DEFAULT_KEYS: KeyBindings = {
   map: 'm',
 };
 
-/** Keys that always work too, unless the player gave them another job. */
-export const FALLBACK_KEYS: Record<string, Btn> = {
-  ArrowUp: 'up',
-  ArrowDown: 'down',
-  ArrowLeft: 'left',
-  ArrowRight: 'right',
-  Enter: 'a',
-  ' ': 'a',
-  Escape: 'b',
-  Backspace: 'b',
-};
+/**
+ * While typing a name, letter keys write letters, so these keys confirm and go back instead
+ * (Retroceso erases a letter). This is the only place a button answers to a second key.
+ */
+export const TYPING_KEYS: Record<string, Btn> = { Enter: 'a', Escape: 'b' };
 
 /** Keys that can't be chosen (browser shortcuts, or used to cancel). */
 export const RESERVED_KEYS = ['Escape', 'Control', 'Alt', 'AltGraph', 'Meta', 'OS', 'Tab', 'F5', 'F11', 'F12'];
@@ -69,6 +63,13 @@ const KEY_LABELS: Record<string, string> = {
   PageDown: 'AvPág',
   ContextMenu: 'Menú',
 };
+
+/** The button a key press means: exactly one key per button, no extra keys. */
+export function buttonForKey(bindings: KeyBindings, key: string, typing = false): Btn | null {
+  const k = normalizeKey(key);
+  if (typing && TYPING_KEYS[key]) return TYPING_KEYS[key];
+  return BTN_ORDER.find((b) => bindings[b] === k) ?? null;
+}
 
 /** What to print on screen for a key ("Z", "Espacio", "↑"...). */
 export function keyLabel(key: string): string {

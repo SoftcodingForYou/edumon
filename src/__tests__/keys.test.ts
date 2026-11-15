@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BTN_ORDER, DEFAULT_KEYS, keyLabel, rebind, sanitizeBindings } from '../system/keys';
+import { BTN_ORDER, DEFAULT_KEYS, buttonForKey, keyLabel, rebind, sanitizeBindings } from '../system/keys';
 import { TYPE_ORDER, strongAgainst, weakAgainst, effectiveness } from '../game/elements';
 
 describe('key bindings', () => {
@@ -13,6 +13,19 @@ describe('key bindings', () => {
     expect(k.b).toBe('z');
     expect(rebind(DEFAULT_KEYS, 'map', 'P').map).toBe('p');
     expect(rebind(DEFAULT_KEYS, 'map', 'Q')).toMatchObject({ map: 'q', menu: 'm' }); // Q was the menu key
+  });
+
+  it('answers to exactly one key per button', () => {
+    expect(buttonForKey(DEFAULT_KEYS, DEFAULT_KEYS.a)).toBe('a');
+    expect(buttonForKey(DEFAULT_KEYS, DEFAULT_KEYS.a.toUpperCase())).toBe('a'); // Shift doesn't matter
+    for (const k of ['Enter', 'Escape', 'Backspace']) expect(buttonForKey(DEFAULT_KEYS, k)).toBeNull();
+    // after choosing W for "up", the arrow no longer moves
+    const wasd = rebind(DEFAULT_KEYS, 'up', 'w');
+    expect(buttonForKey(wasd, 'w')).toBe('up');
+    expect(buttonForKey(wasd, 'ArrowUp')).toBeNull();
+    // only while typing a name: Intro confirms and Esc goes back
+    expect(buttonForKey(DEFAULT_KEYS, 'Enter', true)).toBe('a');
+    expect(buttonForKey(DEFAULT_KEYS, 'Escape', true)).toBe('b');
   });
 
   it('shows friendly key names', () => {

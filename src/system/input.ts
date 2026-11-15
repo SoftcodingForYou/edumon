@@ -2,7 +2,7 @@
 // Buttons: arrows, A, B, Q (menu), E (Edudex), T (type chart) and M (map). Keyboard keys are configurable.
 
 import { useEffect, useRef, useSyncExternalStore } from 'react';
-import { DEFAULT_KEYS, FALLBACK_KEYS, RESERVED_KEYS, normalizeKey, type Btn, type DirBtn, type KeyBindings } from './keys';
+import { DEFAULT_KEYS, RESERVED_KEYS, buttonForKey, normalizeKey, type Btn, type DirBtn, type KeyBindings } from './keys';
 
 export type { Btn, DirBtn } from './keys';
 
@@ -46,11 +46,7 @@ function store<T>(initial: T) {
 }
 
 const bindingsStore = store<KeyBindings>({ ...DEFAULT_KEYS });
-let keyToBtn = new Map<string, Btn>();
-const rebuildKeyMap = () => {
-  keyToBtn = new Map(Object.entries(bindingsStore.get()).map(([b, k]) => [k, b as Btn]));
-};
-rebuildKeyMap();
+const keyHeld = new Map<string, Btn>(); // physical key -> the button it pressed (released on keyup)
 
 const isTouchDevice = () =>
   typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || navigator.maxTouchPoints > 0);
@@ -59,7 +55,6 @@ const sourceStore = store<InputSource>(isTouchDevice() ? 'touch' : 'keyboard');
 /** Use the player's chosen keys from now on. */
 export function setBindings(b: KeyBindings) {
   bindingsStore.set({ ...b });
-  rebuildKeyMap();
   clearAll();
 }
 
@@ -69,7 +64,6 @@ export const useBindings = () => useSyncExternalStore(bindingsStore.subscribe, b
 /** Whether the player is using a keyboard, the touch screen or a gamepad. */
 export const useInputSource = () => useSyncExternalStore(sourceStore.subscribe, sourceStore.get, sourceStore.get);
 
-const lookup = (key: string): Btn | null => keyToBtn.get(normalizeKey(key)) ?? FALLBACK_KEYS[key] ?? null;
 
 // ------------------------------------------------------------ dispatching
 
@@ -200,7 +194,7 @@ function onKeyDown(e: KeyboardEvent) {
     }
     return;
   }
-  let btn: Btn | null = lookup(e.key);
+  let btn: Btn | null = buttonForKey(bindingsStore.get(), e.key, textMode);
   let char: string | null = null;
   if (textMode) {
     if (e.key.length === 1 && /[\p{L}\p{N} ]/u.test(e.key)) {
@@ -214,6 +208,7 @@ function onKeyDown(e: KeyboardEvent) {
   e.preventDefault();
   if (btn) {
     const wasHeld = held.has(btn);
+    keyHeld.set(normalizeKey(e.key), btn);
     down(btn);
     // Only the arrows auto-repeat (handy for long lists).
     if (!(DIRS as string[]).includes(btn) && (e.repeat || wasHeld)) return;
@@ -222,12 +217,15 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 function onKeyUp(e: KeyboardEvent) {
-  const btn = lookup(e.key);
+  const k = normalizeKey(e.key);
+  const btn = keyHeld.get(k);
+  keyHeld.delete(k);
   if (btn) up(btn);
 }
 
 function clearAll() {
   held.clear();
+  keyHeld.clear();
   dirOrder = [];
   tapped = null;
 }

@@ -28,9 +28,11 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   beaches (water creatures; no swimming), two volcanoes, lake with island, river, forest.
 - In the world, creatures use generic sprites (land, bird, water, bug, ghost, plant) so their
   looks stay secret; battles and the Edudex show full-body portraits.
-- Controls are minimal: arrows, A (default Z; Enter/Space also work), B (default X; Esc/Backspace
-  also work; hold B to run), Q = menu (its own key, never the action button), E = Edudex, T = type chart ("Tipos", who is very effective against
-  whom) and M = world map. All keys can be changed in Ajustes → Teclas. On-screen hints always show
+- Controls are minimal: arrows, A (default Z), B (default X; hold B to run), Q = menu (its own
+  key, never the action button), E = Edudex, T = type chart ("Tipos", who is very effective
+  against whom) and M = world map. Every button answers to exactly one key (no extra fallback
+  keys); the only exception is typing a name, where Intro confirms, Esc goes back and Retroceso
+  erases (letter keys write letters there). All keys can be changed in Ajustes → Teclas. On-screen hints always show
   the key the player chose (or the round A/B/☰/E/T/M buttons when playing by touch or gamepad); the HUD
   shows Menú, Edudex, Tipos and Mapa stacked top-right and they can be tapped. The in-game menu only
   manages the game and its settings (Ajustes, Salir, Seguir); the Edudex has its own shortcut. Touch D-pad + A/B on
@@ -64,7 +66,7 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - `world/` – `mapgen.ts` (deterministic world from `WORLD_SEED`: roads, cliffs/stairs, legendary
   spots), `tiles.ts` (terrain, biomes, `canStep` movement rule), `tileArt.ts`, `world.ts`
   (simulation: movement, spawning, encounters), `renderer.ts` (canvas drawing).
-- `system/` – `keys.ts` (buttons, default/fallback keys, labels, rebinding), `input.ts` (layered
+- `system/` – `keys.ts` (buttons, default keys, key → button, labels, rebinding), `input.ts` (layered
   input handlers, key capture, keyboard/touch/gamepad source), `audio.ts` (Web Audio SFX, per-type
   attack sounds, original chiptunes).
 - `components/` – React screens: TitleScreen, SlotMenu, NewGame, Play (saving/resuming, HUD),
