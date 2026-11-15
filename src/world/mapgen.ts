@@ -1,14 +1,15 @@
-// Deterministic world generation: the same seed always builds the same world,
-// so children can learn where the beach, the volcanoes and the mountains are.
+// The "Estaciones" world: deterministic generation, so the same seed always builds the
+// same world and children can learn where the beach, the volcanoes and the mountains are.
+// Saved games point into this exact world (see the checksum test): don't change its output.
 
 import { fbm, hash2 } from '../game/rng';
-import { T, B, canStep, isWalkable, type WorldMap, type Spot } from './tiles';
+import { HABITAT_NAMES } from '../game/creatures';
+import { T, B, BIOME_HABITAT, type WorldMap, type Spot, type MapLabel } from './tiles';
+import { borderTrees, cliffsAndStairs, drawRoads, finishMap, paveRoads, type Pt } from './mapkit';
 
 export const MAP_W = 120;
 export const MAP_H = 106;
 export const WORLD_SEED = 1114;
-
-type Pt = [number, number];
 
 const ROADS: Pt[][] = [
   [[4, 45], [22, 45], [40, 44], [57, 44], [75, 45], [90, 44], [115, 44]], // gran camino este-oeste
@@ -33,18 +34,24 @@ const SPOTS: Spot[] = [
   { species: 150, x: 28, y: 61 }, // Aurorón: isla del lago
 ];
 
+// Where the area names are written on the world map (in tiles).
+const LABELS: MapLabel[] = [
+  { name: 'Gran volcán', x: 24, y: 6 },
+  { name: 'Montaña', x: 80, y: 30 },
+  { name: 'Cumbre nevada', x: 85, y: 15 },
+  { name: 'Bosque', x: 108, y: 50 },
+  { name: 'Lago', x: 28, y: 71 },
+  { name: 'Río', x: 70, y: 66 },
+  { name: 'Pradera', x: 44, y: 32 },
+  { name: 'Playa', x: 34, y: 88 },
+  { name: 'Isla volcánica', x: 104, y: 86 },
+];
+
 const BIG_VOLCANO = { x: 24, y: 22 };
 const ISLAND = { x: 104, y: 96 };
 const SHRINE = { x: 106, y: 71 };
 
-let cached: WorldMap | null = null;
-
-export function getWorldMap(): WorldMap {
-  if (!cached) cached = generateWorld(WORLD_SEED);
-  return cached;
-}
-
-export function generateWorld(seed: number): WorldMap {
+export function generateEstaciones(seed: number = WORLD_SEED): WorldMap {
   const W = MAP_W;
   const H = MAP_H;
   const N = W * H;
@@ -162,39 +169,11 @@ export function generateWorld(seed: number): WorldMap {
   volcano(ISLAND.x, ISLAND.y, 4.5, 3.5, 0, 1.5, 6.8);
 
   // 7) Roads (2 tiles wide). Over water they become bridges.
-  for (const pts of ROADS) {
-    for (let s = 0; s + 1 < pts.length; s++) {
-      const [ax, ay] = pts[s];
-      const [bx, by] = pts[s + 1];
-      const steps = Math.max(Math.abs(bx - ax), Math.abs(by - ay)) * 2;
-      for (let k = 0; k <= steps; k++) {
-        const x = Math.round(ax + ((bx - ax) * k) / steps);
-        const y = Math.round(ay + ((by - ay) * k) / steps);
-        for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
-          if (inb(x + dx, y + dy)) road[idx(x + dx, y + dy)] = 1;
-        }
-      }
-    }
-  }
-  for (let i = 0; i < N; i++) {
-    if (!road[i]) continue;
-    if (ter[i] === T.WATER) ter[i] = T.BRIDGE;
-    else if (ter[i] !== T.LAVA) ter[i] = T.PATH;
-  }
+  drawRoads(road, W, H, ROADS);
+  paveRoads(ter, road);
 
   // 8) Cliffs where the ground drops to the south; stairs where roads cross height changes.
-  for (let y = 1; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const i = idx(x, y);
-      const up = idx(x, y - 1);
-      if (ter[i] === T.WATER || ter[i] === T.LAVA || ter[i] === T.BRIDGE) continue;
-      if (elev[up] > elev[i]) {
-        ter[i] = road[i] && road[up] ? T.STAIRS : T.CLIFF;
-      } else if (elev[up] < elev[i] && road[i] && road[up] && ter[up] !== T.STAIRS) {
-        ter[i] = T.STAIRS;
-      }
-    }
-  }
+  cliffsAndStairs(ter, elev, road, W, H);
 
   const nearRoad = (x: number, y: number, r: number) => {
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (inb(x + dx, y + dy) && road[idx(x + dx, y + dy)]) return true;
@@ -276,46 +255,27 @@ export function generateWorld(seed: number): WorldMap {
   }
 
   // 12) Map borders: trees on land.
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      if (x > 1 && y > 1 && x < W - 2 && y < H - 2) continue;
-      const i = idx(x, y);
-      if (ter[i] !== T.WATER) ter[i] = T.TREE;
-    }
-  }
+  borderTrees(ter, W, H);
 
-  const m: WorldMap = { id: `v1:${seed}:${W}x${H}`, w: W, h: H, ter, elev, bio, fresh, reach: new Uint8Array(N), spots: SPOTS, starts: [] };
+  const m: WorldMap = {
+    id: `v1:${seed}:${W}x${H}`,
+    key: 'estaciones',
+    name: 'Estaciones',
+    w: W,
+    h: H,
+    ter,
+    elev,
+    bio,
+    zone: bio, // each habitat is a zone
+    zones: BIOME_HABITAT.map((h) => ({ name: HABITAT_NAMES[h], habitats: [h] })),
+    labels: LABELS,
+    fresh,
+    reach: new Uint8Array(N),
+    spots: SPOTS,
+    starts: [],
+  };
 
-  // 13) Reachability from the central crossroads; unreachable pockets become trees/rocks.
-  const start = idx(57, 44);
-  const queue = [start];
-  m.reach[start] = 1;
-  while (queue.length) {
-    const c = queue.pop()!;
-    const cx = c % W;
-    const cy = (c - cx) / W;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = cx + dx;
-      const ny = cy + dy;
-      if (!inb(nx, ny)) continue;
-      const ni = idx(nx, ny);
-      if (m.reach[ni] || !canStep(m, cx, cy, nx, ny)) continue;
-      m.reach[ni] = 1;
-      queue.push(ni);
-    }
-  }
-  for (let i = 0; i < N; i++) {
-    if (m.reach[i] || !isWalkable(ter[i])) continue;
-    const t = ter[i];
-    if (t === T.STAIRS || t === T.BRIDGE || t === T.PATH) continue;
-    if (t === T.SAND) ter[i] = T.PALM;
-    else if (t === T.ROCK || t === T.ASH || t === T.SNOW) ter[i] = T.BOULDER;
-    else ter[i] = T.TREE;
-  }
-
-  // 14) Friendly starting points: roads in the lowlands.
-  for (let i = 0; i < N; i++) {
-    if (ter[i] === T.PATH && m.reach[i] && elev[i] === 0 && bio[i] !== B.VOLCAN) m.starts.push(i);
-  }
+  // 13) Reachability from the central crossroads, 14) starting points: roads in the lowlands.
+  finishMap(m, 57, 44, (i) => elev[i] === 0 && bio[i] !== B.VOLCAN);
   return m;
 }

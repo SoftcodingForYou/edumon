@@ -5,8 +5,11 @@ import type { PixelImage } from './raster';
 import { overworldFrames, playerFrames, AVATARS, ballSprite, type Dir } from './sprites';
 import { flipH } from './pixel';
 import { getSpecies } from '../game/creatures';
-import { getWorldMap } from '../world/mapgen';
+import { getWorldMap } from '../world/maps';
 import { renderMapPixels, tallGrassFront } from '../world/tileArt';
+import type { MapId, WorldMap } from '../world/tiles';
+
+const urlCache = new Map<string, string>();
 
 export function toCanvas(img: PixelImage): HTMLCanvasElement {
   const cv = document.createElement('canvas');
@@ -19,10 +22,35 @@ export function toCanvas(img: PixelImage): HTMLCanvasElement {
   return cv;
 }
 
-let mapCanvas: HTMLCanvasElement | null = null;
-export function getMapCanvas(): HTMLCanvasElement {
-  if (!mapCanvas) mapCanvas = toCanvas(renderMapPixels(getWorldMap()));
-  return mapCanvas;
+const mapCanvases = new Map<string, HTMLCanvasElement>();
+/** The whole world drawn once (16 px per tile). */
+export function getMapCanvas(map: WorldMap): HTMLCanvasElement {
+  let cv = mapCanvases.get(map.id);
+  if (!cv) {
+    cv = toCanvas(renderMapPixels(map));
+    mapCanvases.set(map.id, cv);
+  }
+  return cv;
+}
+
+/** A small picture of a whole world (for choosing the map of a new game). */
+export function mapPreviewURL(id: MapId, w: number): string {
+  const key = `map-${id}-${w}`;
+  let u = urlCache.get(key);
+  if (!u) {
+    const map = getWorldMap(id);
+    const src = getMapCanvas(map);
+    const cv = document.createElement('canvas');
+    cv.width = w;
+    cv.height = Math.round((w * map.h) / map.w);
+    const ctx = cv.getContext('2d')!;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, cv.width, cv.height);
+    u = cv.toDataURL('image/png');
+    urlCache.set(key, u);
+  }
+  return u;
 }
 
 let grass: HTMLCanvasElement | null = null;
@@ -59,7 +87,6 @@ export function getOwFrames(sp: number) {
   return f;
 }
 
-const urlCache = new Map<string, string>();
 function cachedURL(key: string, make: () => PixelImage): string {
   let u = urlCache.get(key);
   if (!u) {

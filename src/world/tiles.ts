@@ -1,6 +1,7 @@
-// Terrain, biomes and movement rules of the world map.
+// Terrain, biomes, zones and movement rules of the world maps.
 
 import type { Habitat } from '../game/creatures';
+import type { Elem } from '../game/elements';
 
 export const T = {
   GRASS: 0,
@@ -21,6 +22,9 @@ export const T = {
   BOULDER: 15,
   BUSH: 16,
   PILLAR: 17,
+  BUILDING: 18, // city buildings (roof tinted with the district's type colour)
+  TOMB: 19, // gravestones in the cemetery
+  RAIL: 20, // railway tracks
 } as const;
 
 export const B = {
@@ -31,9 +35,36 @@ export const B = {
   MONTANA: 4,
   CUMBRE: 5,
   VOLCAN: 6,
+  CIUDAD: 7, // streets and squares (only a look: creatures follow the zones)
 } as const;
 
+/** The creature habitat of each natural biome (Estaciones zones use the same order). */
 export const BIOME_HABITAT: Habitat[] = ['pradera', 'bosque', 'lago', 'playa', 'montana', 'cumbre', 'volcan'];
+
+/** Battle background of each biome (CSS class "bg-<name>"). */
+export const BIOME_BG: string[] = [...BIOME_HABITAT, 'ciudad'];
+
+export type MapId = 'estaciones' | 'santiago';
+export const MAP_IDS: MapId[] = ['estaciones', 'santiago'];
+export const MAP_NAMES: Record<MapId, string> = { estaciones: 'Estaciones', santiago: 'Santiago' };
+
+/**
+ * A region of the map that decides which wild creatures live there: by habitat
+ * (Estaciones: pradera, bosque...) or by type (Santiago: one type per district).
+ */
+export interface Zone {
+  name: string; // "la pradera", "Recoleta"...
+  habitats?: Habitat[];
+  type?: Elem;
+}
+
+/** A name written on the world map (in tiles). */
+export interface MapLabel {
+  name: string;
+  x: number;
+  y: number;
+  type?: Elem;
+}
 
 const WALK = new Uint8Array(32);
 for (const t of [T.GRASS, T.TALL, T.PATH, T.SAND, T.ROCK, T.SNOW, T.ASH, T.STAIRS, T.BRIDGE, T.FLOWERS]) WALK[t] = 1;
@@ -48,11 +79,16 @@ export interface Spot {
 
 export interface WorldMap {
   id: string; // identifies the generated world (seed + size) for saved games
+  key: MapId;
+  name: string;
   w: number;
   h: number;
   ter: Uint8Array;
   elev: Uint8Array;
-  bio: Uint8Array;
+  bio: Uint8Array; // look of the ground (B.*) and the battle background
+  zone: Uint8Array; // index into zones: who lives there
+  zones: Zone[];
+  labels: MapLabel[];
   fresh: Uint8Array; // 1 = lake / river water
   reach: Uint8Array; // 1 = reachable walkable cell
   spots: Spot[]; // legendary creatures' homes

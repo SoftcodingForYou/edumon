@@ -24,8 +24,18 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   direction, wild creatures, legendary cooldowns, random generator, step counter) is saved every
   5th step, after every battle and when the game is left, hidden or closed. Loading a slot resumes
   exactly there; a brand-new game starts on a random road.
-- World: roads, grass, tall grass (random encounters), mountains with stairs and a snowy peak,
-  beaches (water creatures; no swimming), two volcanoes, lake with island, river, forest.
+- Two worlds; the map is chosen once when creating a game and stored on the slot (`SaveSlot.map`):
+  - **Estaciones** (the original world): roads, grass, tall grass (random encounters), mountains
+    with stairs and a snowy peak, beaches (water creatures; no swimming), two volcanoes, lake with
+    island, river, forest. Its zones are the 7 habitats (creatures live by `habitats`).
+  - **Santiago**: an abstract Santiago de Chile with 13 districts (comunas), one per type; only
+    creatures of that type live there (`Zone.type`). Santiago Centro = Normal, Cajón del Maipo =
+    Fuego (Volcán San José), Vitacura = Agua (Parque Bicentenario lagoon), La Florida = Planta,
+    Estación Central = Eléctrico (railway), Lo Barnechea = Hielo (Farellones), Puente Alto = Roca,
+    Pudahuel = Aire (airport), La Pintana = Bicho (farmland), Recoleta = Fantasma (Cementerio
+    General), Ñuñoa = Lucha (Estadio Nacional), Quinta Normal = Dragón (natural history museum),
+    Providencia = Magia (Cerro San Cristóbal). Building roofs take the district's type colour,
+    the world map tints the districts, and walking into one shows its name and type.
 - In the world, creatures use generic sprites (land, bird, water, bug, ghost, plant) so their
   looks stay secret; battles and the Edudex show full-body portraits.
 - Controls are minimal: arrows, A (default Space, shown as "Espacio"), B (default X; hold B to run), Q = menu (its own
@@ -52,8 +62,8 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - `npm run export-art` regenerates the portrait PNGs in `src/art/` (`001-chispin.png` …, 224×224;
   `npm run export-art -- 1` for the original 56×56). Run it after changing creature art or names.
 - Test URLs (throwaway save, nothing stored): `?demo=world|battle|dex|types|map|slots|new` with
-  optional `&sp=25&mode=easy&biome=4&caught=12&team=1,4,7&font=pixel&upper=1`. `?debug` exposes the world state as
-  `window.__edu.world`.
+  optional `&sp=25&mode=easy&biome=4&caught=12&team=1,4,7&font=pixel&upper=1&map=santiago`
+  (`biome=7` is the city battle background). `?debug` exposes the world state as `window.__edu.world`.
 
 ## Architecture (src/)
 
@@ -63,9 +73,11 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - `art/` – `raster.ts` (shape rasterizer with automatic outline/shading), `creatureArt.ts`
   (14 archetypes → 56×56 portraits), `sprites.ts` (hand-drawn 16×16 player, generic creatures,
   star ball), `assets.ts` (browser image caches).
-- `world/` – `mapgen.ts` (deterministic world from `WORLD_SEED`: roads, cliffs/stairs, legendary
-  spots), `tiles.ts` (terrain, biomes, `canStep` movement rule), `tileArt.ts`, `world.ts`
-  (simulation: movement, spawning, encounters), `renderer.ts` (canvas drawing).
+- `world/` – `maps.ts` (`getWorldMap(id)`), `mapgen.ts` (the Estaciones world from `WORLD_SEED`),
+  `santiago.ts` (the Santiago world: districts, rivers, landmarks, city blocks), `mapkit.ts` (shared
+  generator steps: roads, cliffs/stairs, reachability), `tiles.ts` (terrain, biomes, zones, map ids,
+  `canStep` movement rule), `tileArt.ts`, `world.ts` (simulation: movement, zone-based spawning,
+  encounters), `renderer.ts` (canvas drawing).
 - `system/` – `keys.ts` (buttons, default keys, key → button, labels, rebinding), `input.ts` (layered
   input handlers, key capture, keyboard/touch/gamepad source), `audio.ts` (Web Audio SFX, per-type
   attack sounds, original chiptunes).
@@ -88,5 +100,8 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   fine font so both letter styles fit the same boxes. Check new screens in both styles and in capitals.
 - Edudex numbers come from the order of `FAMILIES`, and saves store those numbers: inserting or
   reordering creatures changes what existing saves point to. Keep the order stable.
+- Saved world states only load into the exact same generated map (`WorldMap.id`). A test pins a
+  checksum of Estaciones: changing its generator moves every saved player. Santiago's district
+  order (`DISTRICTS`) is its zone numbering; keep it stable too.
 - `npm test` checks the roster, rules, saves and world (e.g. every portrait fits its frame,
   every legendary home is reachable).

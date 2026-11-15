@@ -4,6 +4,7 @@
 
 import { TOTAL } from './creatures';
 import { DEFAULT_KEYS, sanitizeBindings, type KeyBindings } from '../system/keys';
+import type { MapId } from '../world/tiles';
 
 export type Mode = 'normal' | 'easy';
 
@@ -11,6 +12,7 @@ export interface SaveSlot {
   id: string;
   name: string;
   mode: Mode;
+  map: MapId; // the world this game is played in (chosen when it is created)
   avatar: number;
   seen: number[];
   caught: number[];
@@ -119,6 +121,7 @@ function sanitize(raw: unknown): SaveSlot | null {
     id: r.id,
     name: cleanName(r.name),
     mode: r.mode === 'easy' ? 'easy' : 'normal',
+    map: r.map === 'santiago' ? 'santiago' : 'estaciones', // games from before the second map
     avatar: Number.isInteger(r.avatar) ? (r.avatar as number) : 0,
     seen,
     caught,
@@ -162,7 +165,13 @@ export function nameTaken(name: string, slots: SaveSlot[]): boolean {
   return slots.some((s) => sameName(s.name, name));
 }
 
-export function createSlot(name: string, mode: Mode, avatar: number, start: { seen?: number[]; caught?: number[] } = {}): SaveSlot {
+export function createSlot(
+  name: string,
+  mode: Mode,
+  avatar: number,
+  start: { seen?: number[]; caught?: number[] } = {},
+  map: MapId = 'estaciones',
+): SaveSlot {
   const clean = cleanName(name);
   if (!clean) throw new Error('El nombre está vacío');
   const slots = loadSlots();
@@ -173,6 +182,7 @@ export function createSlot(name: string, mode: Mode, avatar: number, start: { se
     id: `p${now.toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`,
     name: clean,
     mode,
+    map,
     avatar,
     seen: validIds([...(start.seen ?? []), ...caught]),
     caught,

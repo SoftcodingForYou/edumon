@@ -29,7 +29,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, ws: WorldState, avata
   const camY = Math.max(0, Math.min(maxY, Math.round(ppy + TILE / 2 - VIEW_H / 2)));
 
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(getMapCanvas(), camX, camY, VIEW_W, VIEW_H, 0, 0, VIEW_W, VIEW_H);
+  ctx.drawImage(getMapCanvas(map), camX, camY, VIEW_W, VIEW_H, 0, 0, VIEW_W, VIEW_H);
 
   // Gentle water sparkles and bubbling lava.
   const tx0 = Math.floor(camX / TILE);

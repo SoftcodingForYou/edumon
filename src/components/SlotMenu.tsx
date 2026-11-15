@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SaveSlot } from '../game/save';
 import { TOTAL } from '../game/creatures';
 import { avatarURL } from '../art/assets';
+import { MAP_NAMES } from '../world/tiles';
 import { sfx } from '../system/audio';
 import { Menu, LAYER, BallIcon, EyeIcon, KeyHint, A, Bb } from './ui';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -65,6 +66,7 @@ export function SlotMenu({ slots, onPlay, onNew, onDelete, onSettings, onBack, a
                   <span className="slot-name">{s.name}</span>
                   <span className="slot-stats">
                     <span className={'mode-badge ' + s.mode}>{s.mode === 'easy' ? 'Fácil' : 'Normal'}</span>
+                    <span className="map-badge">{MAP_NAMES[s.map]}</span>
                     <BallIcon size={22} /> {s.caught.length}/{TOTAL}
                     <EyeIcon size={22} /> {s.seen.length}
                   </span>

@@ -492,6 +492,14 @@ body {
 .mode-badge.easy {
   background: #3fae48;
 }
+.map-badge {
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  font-size: calc(20px * var(--fs, 1));
+  background: var(--paper-shade);
+}
 
 .new-opt {
   font-weight: 700;
@@ -635,6 +643,18 @@ body {
   font-size: calc(30px * var(--fs, 1));
 }
 
+.map-card {
+  justify-content: flex-start;
+}
+.map-card h3 {
+  margin: 4px 0 0;
+}
+.map-preview {
+  width: 230px;
+  height: auto;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+}
 .mode-icon {
   height: 120px;
   display: flex;
@@ -747,6 +767,9 @@ body {
   position: absolute;
   top: 60px;
   left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 4px 22px;
   font-size: calc(37px * var(--fs, 1));
   font-weight: 700;
@@ -990,6 +1013,12 @@ body {
 }
 .bg-volcan {
   background: linear-gradient(#f0a070 0%, #f8d4a6 52%, #8a7a7a 52%, #6a5a62 100%);
+}
+.bg-ciudad {
+  /* a city skyline standing on the horizon (52% of the 576 px stage) */
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='384' height='90'%3E%3Cg fill='%2394a6c4'%3E%3Crect x='0' y='40' width='46' height='50'/%3E%3Crect x='52' y='18' width='34' height='72'/%3E%3Crect x='92' y='52' width='40' height='38'/%3E%3Crect x='140' y='6' width='24' height='84'/%3E%3Cpolygon points='140,6 152,0 164,6'/%3E%3Crect x='172' y='34' width='52' height='56'/%3E%3Crect x='232' y='24' width='30' height='66'/%3E%3Crect x='268' y='46' width='44' height='44'/%3E%3Crect x='320' y='14' width='36' height='76'/%3E%3Crect x='362' y='56' width='22' height='34'/%3E%3C/g%3E%3Cg fill='%23c4d2e6'%3E%3Crect x='60' y='26' width='6' height='6'/%3E%3Crect x='72' y='26' width='6' height='6'/%3E%3Crect x='60' y='40' width='6' height='6'/%3E%3Crect x='72' y='54' width='6' height='6'/%3E%3Crect x='146' y='16' width='5' height='6'/%3E%3Crect x='154' y='30' width='5' height='6'/%3E%3Crect x='146' y='44' width='5' height='6'/%3E%3Crect x='238' y='32' width='6' height='6'/%3E%3Crect x='250' y='46' width='6' height='6'/%3E%3Crect x='328' y='24' width='6' height='6'/%3E%3Crect x='342' y='38' width='6' height='6'/%3E%3Crect x='328' y='52' width='6' height='6'/%3E%3C/g%3E%3C/svg%3E") repeat-x left 0 top 210px / 384px 90px,
+    linear-gradient(#9ccff6 0%, #d8ecfc 52%, #cfc9be 52%, #ada69a 100%);
 }
 
 /* ------------------------------------------------------------- battle */
@@ -2028,6 +2057,21 @@ body {
   border-radius: 6px;
 }
 
+.wm-label.district {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px 0 2px;
+  border-width: 3px;
+}
+.wm-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
 .wm-legend {
   display: flex;
   justify-content: center;

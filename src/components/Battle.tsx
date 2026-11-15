@@ -4,7 +4,7 @@ import { ELEMS, type Elem } from '../game/elements';
 import { attackDamage, easyCatchChance, easyFleeChance, playerMaxHp, rollCatch, wildMaxHp } from '../game/battle';
 import type { SaveSlot } from '../game/save';
 import type { Encounter, Outcome } from '../world/world';
-import { BIOME_HABITAT } from '../world/tiles';
+import { BIOME_BG } from '../world/tiles';
 import { avatarBackURL, ballURL, portraitBounds, portraitURL } from '../art/assets';
 import { attackSfx, playMusic, sfx } from '../system/audio';
 import { Menu, TextBox, LAYER, TypeBadge, HpBar, BallIcon, type Opt } from './ui';
@@ -315,7 +315,7 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
   }, []);
 
   const mineSp = mine !== null ? getSpecies(mine) : null;
-  const habitat = BIOME_HABITAT[enc.biome] ?? 'pradera';
+  const habitat = BIOME_BG[enc.biome] ?? 'pradera';
   // Dizzy stars sit on top of the head (portraits are 56 px, shown at 3.5x / 4x).
   const wildHead = portraitBounds(wild.id);
   const mineHead = mineSp ? portraitBounds(mineSp.id) : null;

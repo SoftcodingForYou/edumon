@@ -1,6 +1,7 @@
 // Draws the whole world map into one RGBA pixel buffer (16x16 px per tile).
 
 import { hash2 } from '../game/rng';
+import { ELEMS } from '../game/elements';
 import { hexToRgb, type PixelImage } from '../art/raster';
 import { T, B, type WorldMap } from './tiles';
 
@@ -72,6 +73,7 @@ const PATH_PAL: Record<number, { base: C; edge: C; dot: C }> = {
   [B.MONTANA]: { base: c('#dcc8a0'), edge: c('#b49a72'), dot: c('#c8b28a') },
   [B.CUMBRE]: { base: c('#dce6f2'), edge: c('#b4c4da'), dot: c('#c8d6e8') },
   [B.VOLCAN]: { base: c('#8c8090'), edge: c('#5e5464'), dot: c('#7a6e7e') },
+  [B.CIUDAD]: { base: c('#c9c4ba'), edge: c('#9c968c'), dot: c('#b6b0a6') },
 };
 
 const WATER_SEA = { base: c('#4f9ef0'), wave: c('#8ccaf8'), foam: c('#e4f6ff'), foam2: c('#b4e0fa') };
@@ -281,6 +283,86 @@ function pillarTile(b: Buf, x0: number, y0: number) {
   b.rect(x0 + 3, y0 + 14, 10, 2, out);
 }
 
+// ------------------------------------------------------------ city tiles (Santiago)
+
+const mix = (a: C, b2: C, k: number): C => [a[0] + (b2[0] - a[0]) * k, a[1] + (b2[1] - a[1]) * k, a[2] + (b2[2] - a[2]) * k].map(Math.round) as C;
+const INK = c('#2a2238');
+const WALL = { base: c('#f2e8d2'), shade: c('#d8cab0') };
+const GLASS = { base: c('#86bce8'), shine: c('#d8f0ff'), lit: c('#ffe27a'), frame: c('#5a6478') };
+const roofCache = new Map<string, { base: C; dark: C; light: C }>();
+
+/** Roofs take the colour of the district's type, so every district looks different. */
+function roofPal(m: WorldMap, i: number) {
+  const type = m.zones[m.zone[i]]?.type;
+  const hex = type ? ELEMS[type].color : '#c0603c';
+  let pal = roofCache.get(hex);
+  if (!pal) {
+    const base = mix(c(hex), c('#9a8c84'), 0.2);
+    pal = { base, dark: mix(base, INK, 0.35), light: mix(base, c('#ffffff'), 0.35) };
+    roofCache.set(hex, pal);
+  }
+  return pal;
+}
+
+function buildingTile(b: Buf, m: WorldMap, x0: number, y0: number, tx: number, ty: number) {
+  const i = ty * m.w + tx;
+  const isB = (x: number, y: number) => x >= 0 && y >= 0 && x < m.w && y < m.h && m.ter[y * m.w + x] === T.BUILDING;
+  const roof = roofPal(m, i);
+  if (isB(tx, ty + 1)) {
+    // roof seen from above, with tiles and a lighter ridge at the top edge
+    b.rect(x0, y0, TILE, TILE, roof.base);
+    for (let y = 3; y < TILE; y += 4) b.rect(x0, y0 + y, TILE, 1, roof.dark);
+    if (!isB(tx, ty - 1)) {
+      b.rect(x0, y0, TILE, 1, INK);
+      b.rect(x0, y0 + 1, TILE, 2, roof.light);
+    }
+  } else {
+    // front wall with two windows (some lit) and sometimes a door
+    b.rect(x0, y0, TILE, TILE, WALL.base);
+    b.rect(x0, y0, TILE, 3, roof.dark);
+    if (!isB(tx, ty - 1)) b.rect(x0, y0, TILE, 1, INK);
+    const door = hash2(tx, ty, 170) < 0.3;
+    for (const wx of door ? [1, 11] : [2, 10]) {
+      b.rect(x0 + wx, y0 + 5, 5, 5, GLASS.frame);
+      b.rect(x0 + wx + 1, y0 + 6, 3, 3, hash2(tx * 3 + wx, ty, 171) < 0.2 ? GLASS.lit : GLASS.base);
+      b.set(x0 + wx + 1, y0 + 6, GLASS.shine);
+    }
+    if (door) {
+      b.rect(x0 + 6, y0 + 8, 4, 7, c('#8a5a32'));
+      b.set(x0 + 8, y0 + 11, c('#f8d84a'));
+    }
+    b.rect(x0, y0 + 13, TILE, 2, WALL.shade);
+    b.rect(x0, y0 + 15, TILE, 1, INK);
+  }
+  if (!isB(tx - 1, ty)) b.rect(x0, y0, 1, TILE, INK);
+  if (!isB(tx + 1, ty)) b.rect(x0 + 15, y0, 1, TILE, INK);
+}
+
+function tombTile(b: Buf, x0: number, y0: number) {
+  const stone = c('#b4b4c4');
+  const dark = c('#7c7c90');
+  b.rect(x0 + 4, y0 + 13, 9, 2, c('#3e8c38')); // shadow on the grass
+  for (let y = 3; y < 14; y++) {
+    for (let x = 4; x < 12; x++) {
+      const top = y < 6 && Math.hypot(x - 7.5, y - 6) > 3.6; // rounded top
+      if (top) continue;
+      const edge = x === 4 || x === 11 || y === 13 || (y < 7 && Math.hypot(x - 7.5, y - 6) > 2.9);
+      b.set(x0 + x, y0 + y, edge ? INK : x > 9 ? dark : stone);
+    }
+  }
+  b.rect(x0 + 6, y0 + 8, 4, 1, dark);
+  b.rect(x0 + 6, y0 + 10, 4, 1, dark);
+}
+
+function railTile(b: Buf, x0: number, y0: number, tx: number, ty: number) {
+  speckle(b, x0, y0, tx, ty, { base: c('#a8998a'), dark: c('#867868'), light: c('#c4b8aa') }, 4);
+  for (let x = 1; x < TILE; x += 4) b.rect(x0 + x, y0 + 2, 2, 12, c('#7a5232'));
+  for (const ry of [4, 10]) {
+    b.rect(x0, y0 + ry, TILE, 1, c('#e4e8ee'));
+    b.rect(x0, y0 + ry + 1, TILE, 1, c('#6a6e7a'));
+  }
+}
+
 function flowersTile(b: Buf, x0: number, y0: number, tx: number, ty: number) {
   for (let k = 0; k < 3; k++) {
     const fx = x0 + 2 + Math.floor(hash2(tx, ty, 90 + k) * 11);
@@ -304,7 +386,8 @@ function pathTile(b: Buf, m: WorldMap, x0: number, y0: number, tx: number, ty: n
     for (let y = 0; y < TILE; y += 4) b.rect(x0, y0 + y, TILE, 1, WOOD.light);
     return;
   }
-  const key = bio === B.VOLCAN ? B.VOLCAN : bio === B.CUMBRE ? B.CUMBRE : bio === B.MONTANA && m.elev[i] > 0 ? B.MONTANA : B.PRADERA;
+  const key =
+    bio === B.VOLCAN ? B.VOLCAN : bio === B.CUMBRE ? B.CUMBRE : bio === B.MONTANA && m.elev[i] > 0 ? B.MONTANA : bio === B.CIUDAD ? B.CIUDAD : B.PRADERA;
   const pal = PATH_PAL[key];
   b.rect(x0, y0, TILE, TILE, pal.base);
   for (let k = 0; k < 3; k++) {
@@ -450,6 +533,16 @@ function drawTile(b: Buf, m: WorldMap, tx: number, ty: number) {
       speckle(b, x0, y0, tx, ty, gp, 1);
       pillarTile(b, x0, y0);
       break;
+    case T.BUILDING:
+      buildingTile(b, m, x0, y0, tx, ty);
+      break;
+    case T.TOMB:
+      speckle(b, x0, y0, tx, ty, gp, 1);
+      tombTile(b, x0, y0);
+      break;
+    case T.RAIL:
+      railTile(b, x0, y0, tx, ty);
+      break;
     default:
       speckle(b, x0, y0, tx, ty, gp, 3);
   }
@@ -508,6 +601,9 @@ export function minimapPixels(m: WorldMap): PixelImage {
     [T.BOULDER]: '#3e3a48',
     [T.BUSH]: '#2e8038',
     [T.PILLAR]: '#c8c8d6',
+    [T.BUILDING]: '#c0603c',
+    [T.TOMB]: '#b4b4c4',
+    [T.RAIL]: '#867868',
   };
   for (let i = 0; i < m.w * m.h; i++) {
     const [r, g, bb] = hexToRgb(colors[m.ter[i]] ?? '#000000');

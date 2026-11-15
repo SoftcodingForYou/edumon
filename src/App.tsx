@@ -48,6 +48,7 @@ function parseDemo(): Demo | null {
     id: 'demo',
     name: 'DEMO',
     mode: q.get('mode') === 'easy' ? 'easy' : 'normal',
+    map: q.get('map') === 'santiago' ? 'santiago' : 'estaciones',
     avatar: Number(q.get('avatar') ?? 0),
     seen,
     caught,
@@ -128,7 +129,7 @@ export function App() {
 
   const create = (r: NewGameResult) => {
     try {
-      const slot = createSlot(r.name, r.mode, r.avatar, r.starter ? { caught: [r.starter], seen: STARTERS } : {});
+      const slot = createSlot(r.name, r.mode, r.avatar, r.starter ? { caught: [r.starter], seen: STARTERS } : {}, r.map);
       const list = loadSlots();
       slotsRef.current = list;
       setSlots(list);

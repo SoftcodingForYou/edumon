@@ -1,9 +1,9 @@
 // The living world: the player walks around, wild Edumon wander and
 // appear around the player. Pure logic (no drawing), so it can be tested.
 
-import { SPECIES, MYTHICAL_ID, TOTAL, getSpecies, type Habitat, type Species } from '../game/creatures';
+import { SPECIES, MYTHICAL_ID, TOTAL, getSpecies, type Species } from '../game/creatures';
 import { mulberry32, pickWeighted, type SeededRng } from '../game/rng';
-import { T, B, BIOME_HABITAT, canStep, isWalkable, type WorldMap } from './tiles';
+import { T, B, canStep, isWalkable, type WorldMap } from './tiles';
 
 export type Dir = 'up' | 'down' | 'left' | 'right';
 export const DIR_VEC: Record<Dir, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -80,18 +80,39 @@ const VIEW_RX = 9;
 const VIEW_RY = 7;
 export const GRASS_CHANCE = 0.085;
 
-const BY_HABITAT: Record<Habitat, Species[]> = (() => {
-  const out = {} as Record<Habitat, Species[]>;
-  for (const h of BIOME_HABITAT) out[h] = SPECIES.filter((s) => s.rarity > 0 && s.habitats.includes(h));
-  return out;
-})();
+interface ZoneInfo {
+  pools: Species[][]; // wild creatures of each zone
+  allowed: Map<number, Set<number>>; // species -> zones it may wander into
+}
+const zoneCache = new WeakMap<WorldMap, ZoneInfo>();
 
-const ALLOWED_BIOMES: Map<number, Set<number>> = new Map(
-  SPECIES.map((s) => [s.id, new Set(s.habitats.map((h) => BIOME_HABITAT.indexOf(h)))]),
-);
+/** Who lives in each zone: by habitat (Estaciones) or by type (Santiago's districts). */
+function zoneInfo(map: WorldMap): ZoneInfo {
+  let info = zoneCache.get(map);
+  if (!info) {
+    const pools = map.zones.map((z) =>
+      SPECIES.filter((s) => s.rarity > 0 && (z.type ? s.types.includes(z.type) : s.habitats.some((h) => z.habitats?.includes(h)))),
+    );
+    const allowed = new Map<number, Set<number>>();
+    pools.forEach((pool, k) => {
+      for (const s of pool) {
+        if (!allowed.has(s.id)) allowed.set(s.id, new Set());
+        allowed.get(s.id)!.add(k);
+      }
+    });
+    info = { pools, allowed };
+    zoneCache.set(map, info);
+  }
+  return info;
+}
 
-export function speciesForBiome(biome: number): Species[] {
-  return BY_HABITAT[BIOME_HABITAT[biome]] ?? [];
+export function speciesForZone(map: WorldMap, zone: number): Species[] {
+  return zoneInfo(map).pools[zone] ?? [];
+}
+
+/** The zones (indices into map.zones) where a species can be met in the wild. */
+export function zonesOfSpecies(map: WorldMap, sp: number): number[] {
+  return [...(zoneInfo(map).allowed.get(sp) ?? [])];
 }
 
 export function createWorld(map: WorldMap, caught: number[], seed = Date.now()): WorldState {
@@ -119,10 +140,10 @@ export function createWorld(map: WorldMap, caught: number[], seed = Date.now()):
 
 const occupied = (ws: WorldState, x: number, y: number) => ws.creatures.some((c) => c.x === x && c.y === y);
 
-function pickSpecies(ws: WorldState, biome: number): number | null {
+function pickSpecies(ws: WorldState, zone: number): number | null {
   const caughtCount = ws.caught.size;
   if (!ws.caught.has(MYTHICAL_ID) && ws.rng() < 0.004 + 0.02 * (caughtCount / 150)) return MYTHICAL_ID;
-  return pickWeighted(ws.rng, speciesForBiome(biome), (s) => s.rarity)?.id ?? null;
+  return pickWeighted(ws.rng, speciesForZone(ws.map, zone), (s) => s.rarity)?.id ?? null;
 }
 
 function addCreature(ws: WorldState, sp: number, x: number, y: number, spot: number) {
@@ -158,7 +179,7 @@ function trySpawn(ws: WorldState, allowVisible: boolean): boolean {
     if (ax + ay < 5) continue;
     if (!allowVisible && ax <= VIEW_RX && ay <= VIEW_RY) continue;
     if (occupied(ws, x, y)) continue;
-    const sp = pickSpecies(ws, map.bio[i]);
+    const sp = pickSpecies(ws, map.zone[i]);
     if (!sp) continue;
     addCreature(ws, sp, x, y, -1);
     return true;
@@ -192,7 +213,7 @@ function creatureCanEnter(ws: WorldState, c: WildCreature, nx: number, ny: numbe
   const i = ny * map.w + nx;
   const t = map.ter[i];
   if (t === T.STAIRS || t === T.BRIDGE) return false;
-  if (c.sp !== MYTHICAL_ID && !ALLOWED_BIOMES.get(c.sp)?.has(map.bio[i])) return false;
+  if (c.sp !== MYTHICAL_ID && !zoneInfo(map).allowed.get(c.sp)?.has(map.zone[i])) return false;
   if (p.x === nx && p.y === ny) return false;
   if (p.moving && p.fx === nx && p.fy === ny) return false;
   return !occupied(ws, nx, ny);
@@ -256,7 +277,7 @@ function updatePlayer(ws: WorldState, dt: number, input: WorldInput, ev: WorldEv
     if (map.ter[i] === T.TALL) {
       ev.rustle = true;
       if (ws.grace <= 0 && ws.rng() < GRASS_CHANCE) {
-        const sp = pickSpecies(ws, map.bio[i]);
+        const sp = pickSpecies(ws, map.zone[i]);
         if (sp) {
           ev.encounter = { sp, uid: null, spot: -1, biome: map.bio[i] };
           return;
@@ -322,6 +343,11 @@ export function finishEncounter(ws: WorldState, enc: Encounter, outcome: Outcome
 
 export function biomeOfPlayer(ws: WorldState): number {
   return ws.map.bio[ws.player.y * ws.map.w + ws.player.x] ?? B.PRADERA;
+}
+
+/** The zone (habitat area or city district) the player stands in. */
+export function zoneOfPlayer(ws: WorldState): number {
+  return ws.map.zone[ws.player.y * ws.map.w + ws.player.x] ?? 0;
 }
 
 // ------------------------------------------------------------ saving

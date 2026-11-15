@@ -1,12 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SaveSlot } from '../game/save';
-import { SPECIES, TOTAL, HABITAT_NAMES, dexNumber, getSpecies } from '../game/creatures';
+import { SPECIES, TOTAL, HABITAT_NAMES, dexNumber, getSpecies, type Species } from '../game/creatures';
+import { getWorldMap } from '../world/maps';
+import { zonesOfSpecies } from '../world/world';
 import { portraitURL } from '../art/assets';
 import { useInput } from '../system/input';
 import { sfx } from '../system/audio';
 import { LAYER, BallIcon, EyeIcon, KeyHint, A, Bb, TypeBadge, DirKeys, FitText } from './ui';
 
 const COLS = 6;
+
+const joinY = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}` : (xs[0] ?? ''));
+
+/** Where to look for a creature in this game's world: habitats, or Santiago's districts. */
+function whereItLives(s: Species, mapId: SaveSlot['map']): string {
+  const map = getWorldMap(mapId);
+  if (!map.zones.some((z) => z.type)) return joinY(s.habitats.map((h) => HABITAT_NAMES[h]));
+  if (s.mythical) return 'cualquier comuna';
+  const spot = map.spots.find((p) => p.species === s.id);
+  const zones = spot ? [map.zone[spot.y * map.w + spot.x]] : zonesOfSpecies(map, s.id);
+  return joinY(zones.map((z) => map.zones[z].name));
+}
 
 export function Dex({ slot, onClose }: { slot: SaveSlot; onClose: () => void }) {
   const seen = new Set(slot.seen);
@@ -129,7 +143,7 @@ export function Dex({ slot, onClose }: { slot: SaveSlot; onClose: () => void }) 
               <b>Ataque:</b> {s.attack}
             </p>
             <p>
-              <b>Vive en:</b> {s.habitats.map((h) => HABITAT_NAMES[h]).join(' y ')}
+              <b>Vive en:</b> {whereItLives(s, slot.map)}
               {s.legendary ? ' (¡es legendario!)' : s.mythical ? ' (¡es mítico!)' : ''}
             </p>
             <p className="dex-desc">{s.desc}</p>

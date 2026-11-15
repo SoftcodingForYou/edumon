@@ -75,7 +75,15 @@ describe('save slots', () => {
     );
     const slots = loadSlots();
     expect(slots).toHaveLength(1);
-    expect(slots[0]).toMatchObject({ name: 'Leo', mode: 'normal', caught: [3], seen: [2, 3] });
+    expect(slots[0]).toMatchObject({ name: 'Leo', mode: 'normal', map: 'estaciones', caught: [3], seen: [2, 3] }); // games from before the second map
+  });
+
+  it('remembers the map of each game', () => {
+    createSlot('Sol', 'normal', 0, {}, 'santiago');
+    createSlot('Luna', 'easy', 0);
+    const slots = loadSlots();
+    expect(slots.find((x) => x.name === 'Sol')?.map).toBe('santiago');
+    expect(slots.find((x) => x.name === 'Luna')?.map).toBe('estaciones');
   });
 
   it('stores settings, including the chosen keys', () => {

@@ -1,56 +1,135 @@
 import { describe, expect, it } from 'vitest';
-import { generateWorld, getWorldMap, WORLD_SEED } from '../world/mapgen';
-import { B, T, isWalkable } from '../world/tiles';
+import { generateEstaciones } from '../world/mapgen';
+import { generateSantiago } from '../world/santiago';
+import { getWorldMap } from '../world/maps';
+import { B, T, BIOME_HABITAT, MAP_IDS, isWalkable, type WorldMap } from '../world/tiles';
 import {
   AUTOSAVE_STEPS,
   createWorld,
   finishEncounter,
   restoreWorld,
   snapshotWorld,
-  speciesForBiome,
+  speciesForZone,
   updateWorld,
   type WorldState,
 } from '../world/world';
 import { SPECIES } from '../game/creatures';
-import { BIOME_HABITAT } from '../world/tiles';
+import { TYPE_ORDER } from '../game/elements';
 
-const map = getWorldMap();
+const map = getWorldMap('estaciones');
+const santiago = getWorldMap('santiago');
 
-describe('world map', () => {
-  it('is always the same world', () => {
-    const again = generateWorld(WORLD_SEED);
-    expect(Array.from(again.ter)).toEqual(Array.from(map.ter));
-    expect(Array.from(again.elev)).toEqual(Array.from(map.elev));
+const fnv = (arrs: ArrayLike<number>[]) => {
+  let h = 0x811c9dc5;
+  for (const a of arrs) {
+    for (let i = 0; i < a.length; i++) {
+      h ^= a[i];
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+  }
+  return h.toString(16);
+};
+
+const reachableIn = (m: WorldMap, zone: number) => {
+  let n = 0;
+  for (let i = 0; i < m.w * m.h; i++) if (m.zone[i] === zone && m.reach[i] && isWalkable(m.ter[i])) n++;
+  return n;
+};
+
+describe('world maps', () => {
+  it('are always the same worlds', () => {
+    for (const [m, again] of [
+      [map, generateEstaciones()],
+      [santiago, generateSantiago()],
+    ]) {
+      expect(Array.from(again.ter)).toEqual(Array.from(m.ter));
+      expect(Array.from(again.elev)).toEqual(Array.from(m.elev));
+      expect(Array.from(again.zone)).toEqual(Array.from(m.zone));
+    }
+  });
+
+  it('keeps Estaciones exactly as it was (saved games point into it)', () => {
+    expect(map.id).toBe('v1:1114:120x106');
+    expect(fnv([map.ter, map.elev, map.bio, map.fresh, map.reach])).toBe('3f511bac');
+    expect(fnv([map.starts])).toBe('9b69459d');
   });
 
   it('has every landscape the kids were promised', () => {
-    const count = (t: number) => map.ter.filter((x) => x === t).length;
+    const count = (m: WorldMap, t: number) => m.ter.filter((x) => x === t).length;
     for (const t of [T.PATH, T.GRASS, T.TALL, T.SAND, T.WATER, T.ROCK, T.SNOW, T.ASH, T.LAVA, T.CLIFF, T.STAIRS, T.BRIDGE]) {
-      expect(count(t), `terrain ${t}`).toBeGreaterThan(0);
+      expect(count(map, t), `estaciones terrain ${t}`).toBeGreaterThan(0);
+    }
+    for (const t of [T.PATH, T.GRASS, T.TALL, T.WATER, T.ROCK, T.SNOW, T.ASH, T.LAVA, T.STAIRS, T.BRIDGE, T.BUILDING, T.TOMB, T.RAIL]) {
+      expect(count(santiago, t), `santiago terrain ${t}`).toBeGreaterThan(0);
     }
   });
 
-  it('lets you reach every biome and every legendary home', () => {
+  it('lets you reach every zone and every legendary home', () => {
+    for (const id of MAP_IDS) {
+      const m = getWorldMap(id);
+      expect(m.key).toBe(id);
+      m.zones.forEach((z, k) => expect(reachableIn(m, k), `${id}: ${z.name}`).toBeGreaterThan(20));
+      expect(m.spots.map((s) => s.species).sort()).toEqual([145, 146, 147, 148, 149, 150]);
+      for (const s of m.spots) {
+        const i = s.y * m.w + s.x;
+        expect(isWalkable(m.ter[i]), `${id}: spot ${s.species}`).toBe(true);
+        expect(m.reach[i], `${id}: spot ${s.species}`).toBe(1);
+      }
+      expect(m.starts.length).toBeGreaterThan(100);
+    }
+  });
+
+  it('has wild creatures for every zone and every creature lives somewhere', () => {
     for (let b = 0; b < BIOME_HABITAT.length; b++) {
-      let reachable = 0;
-      for (let i = 0; i < map.w * map.h; i++) if (map.bio[i] === b && map.reach[i] && isWalkable(map.ter[i])) reachable++;
-      expect(reachable, `biome ${BIOME_HABITAT[b]}`).toBeGreaterThan(20);
+      expect(map.zones[b].habitats).toEqual([BIOME_HABITAT[b]]);
+      expect(speciesForZone(map, b).length).toBeGreaterThanOrEqual(8);
     }
-    for (const s of map.spots) {
-      const i = s.y * map.w + s.x;
-      expect(isWalkable(map.ter[i]), `spot ${s.species}`).toBe(true);
-      expect(map.reach[i], `spot ${s.species}`).toBe(1);
+    for (const m of [map, santiago]) {
+      for (const s of SPECIES) {
+        if (s.legendary || s.mythical) continue;
+        expect(s.rarity).toBeGreaterThan(0);
+        expect(m.zones.some((_, k) => speciesForZone(m, k).includes(s)), `${m.name}: ${s.name}`).toBe(true);
+      }
     }
-    expect(map.starts.length).toBeGreaterThan(100);
+  });
+});
+
+describe('Santiago', () => {
+  it('has 13 districts, one for every type', () => {
+    expect(santiago.zones).toHaveLength(13);
+    expect(santiago.zones.map((z) => z.type).sort()).toEqual([...TYPE_ORDER].sort());
+    expect(santiago.labels.map((l) => l.name)).toEqual(santiago.zones.map((z) => z.name));
   });
 
-  it('has wild creatures for every biome and every creature lives somewhere', () => {
-    for (let b = 0; b < BIOME_HABITAT.length; b++) expect(speciesForBiome(b).length).toBeGreaterThanOrEqual(8);
-    for (const s of SPECIES) {
-      if (s.legendary || s.mythical) continue;
-      expect(s.rarity).toBeGreaterThan(0);
-      expect(s.habitats.some((h) => speciesForBiome(BIOME_HABITAT.indexOf(h)).includes(s))).toBe(true);
+  it('only lets creatures of the district type live there, with tall grass to find them', () => {
+    santiago.zones.forEach((z, k) => {
+      const pool = speciesForZone(santiago, k);
+      expect(pool.length, z.name).toBeGreaterThanOrEqual(6);
+      for (const s of pool) expect(s.types).toContain(z.type);
+      let tall = 0;
+      for (let i = 0; i < santiago.w * santiago.h; i++) if (santiago.zone[i] === k && santiago.ter[i] === T.TALL && santiago.reach[i]) tall++;
+      if (z.type !== 'fuego') expect(tall, z.name).toBeGreaterThan(15); // the volcano has none, like in Estaciones
+    });
+  });
+
+  it('keeps wandering creatures inside districts of their type', () => {
+    const ws = createWorld(santiago, [1], 4321);
+    for (let i = 0; i < 400; i++) updateWorld(ws, 0.05, { dir: null, run: false });
+    expect(ws.creatures.length).toBeGreaterThan(3);
+    for (const c of ws.creatures) {
+      if (c.sp === 151 || c.spot >= 0) continue;
+      const z = santiago.zones[santiago.zone[c.y * santiago.w + c.x]];
+      expect(SPECIES[c.sp - 1].types).toContain(z.type);
     }
+  });
+
+  it('does not mix up saved games of the two maps', () => {
+    const ws = createWorld(santiago, [1], 11);
+    expect(santiago.ter[ws.player.y * santiago.w + ws.player.x]).toBe(T.PATH);
+    const snap = JSON.parse(JSON.stringify(snapshotWorld(ws)));
+    expect(restoreWorld(santiago, snap, [1])).not.toBeNull();
+    expect(restoreWorld(map, snap, [1])).toBeNull();
+    expect(restoreWorld(santiago, snapshotWorld(createWorld(map, [1], 11)), [1])).toBeNull();
   });
 });
 
@@ -116,8 +195,8 @@ describe('world simulation', () => {
     for (const c of ws.creatures) {
       if (c.sp === 151 || c.spot >= 0) continue;
       const s = SPECIES[c.sp - 1];
-      const bio = map.bio[c.y * map.w + c.x];
-      expect(s.habitats).toContain(BIOME_HABITAT[bio]);
+      const zone = map.zone[c.y * map.w + c.x];
+      expect(s.habitats).toContain(BIOME_HABITAT[zone]);
     }
     expect(B.PRADERA).toBe(0);
   });

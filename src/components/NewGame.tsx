@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { MAX_NAME, cleanName, nameTaken, type Mode, type SaveSlot } from '../game/save';
 import { getSpecies, STARTERS } from '../game/creatures';
 import { AVATARS } from '../art/sprites';
-import { avatarURL, ballURL, portraitURL } from '../art/assets';
+import { avatarURL, ballURL, mapPreviewURL, portraitURL } from '../art/assets';
+import { MAP_NAMES, type MapId } from '../world/tiles';
 import { setTextMode, useInput } from '../system/input';
 import { sfx } from '../system/audio';
 import { Menu, LAYER, KeyHint, KeyCap, A, Bb, TypeBadge } from './ui';
@@ -11,6 +12,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 export interface NewGameResult {
   name: string;
   mode: Mode;
+  map: MapId;
   avatar: number;
   starter: number | null;
 }
@@ -22,9 +24,10 @@ interface Props {
 }
 
 export function NewGame({ slots, onCancel, onCreate }: Props) {
-  const [step, setStep] = useState<'name' | 'mode' | 'avatar' | 'starter'>('name');
+  const [step, setStep] = useState<'name' | 'mode' | 'map' | 'avatar' | 'starter'>('name');
   const [name, setName] = useState('');
   const [mode, setMode] = useState<Mode>('normal');
+  const [map, setMap] = useState<MapId>('estaciones');
   const [avatar, setAvatar] = useState(0);
 
   if (step === 'name') {
@@ -47,6 +50,18 @@ export function NewGame({ slots, onCancel, onCreate }: Props) {
         onBack={() => setStep('name')}
         onDone={(m) => {
           setMode(m);
+          setStep('map');
+        }}
+      />
+    );
+  }
+  if (step === 'map') {
+    return (
+      <MapSelect
+        initial={map}
+        onBack={() => setStep('mode')}
+        onDone={(m) => {
+          setMap(m);
           setStep('avatar');
         }}
       />
@@ -56,16 +71,16 @@ export function NewGame({ slots, onCancel, onCreate }: Props) {
     return (
       <AvatarSelect
         initial={avatar}
-        onBack={() => setStep('mode')}
+        onBack={() => setStep('map')}
         onDone={(a) => {
           setAvatar(a);
           if (mode === 'normal') setStep('starter');
-          else onCreate({ name, mode, avatar: a, starter: null });
+          else onCreate({ name, mode, map, avatar: a, starter: null });
         }}
       />
     );
   }
-  return <StarterSelect onBack={() => setStep('avatar')} onDone={(s) => onCreate({ name, mode, avatar, starter: s })} />;
+  return <StarterSelect onBack={() => setStep('avatar')} onDone={(s) => onCreate({ name, mode, map, avatar, starter: s })} />;
 }
 
 // ------------------------------------------------------------------ name
@@ -240,6 +255,40 @@ function ModeSelect({ initial, onBack, onDone }: { initial: Mode; onBack: () => 
             </div>
             <h3>{modes[i].title}</h3>
             <p>{modes[i].text}</p>
+          </div>
+        )}
+      />
+      <KeyHint>
+        <A /> Elegir &nbsp; <Bb /> Volver
+      </KeyHint>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ map
+
+const MAPS: { id: MapId; text: string }[] = [
+  { id: 'estaciones', text: 'Volcanes, playa, nieve y bosque.' },
+  { id: 'santiago', text: 'La ciudad: cada comuna tiene su tipo.' },
+];
+
+function MapSelect({ initial, onBack, onDone }: { initial: MapId; onBack: () => void; onDone: (m: MapId) => void }) {
+  return (
+    <div className="screen mode-screen">
+      <h2 className="screen-title">¿Dónde quieres jugar?</h2>
+      <Menu
+        options={MAPS.map((x) => ({ label: MAP_NAMES[x.id] }))}
+        columns={2}
+        initial={initial === 'santiago' ? 1 : 0}
+        layer={LAYER.screen}
+        onBack={onBack}
+        onSelect={(i) => onDone(MAPS[i].id)}
+        className="mode-cards"
+        render={(o, i, sel) => (
+          <div className={'mode-card map-card' + (sel ? ' sel' : '')}>
+            <img className="map-preview" src={mapPreviewURL(MAPS[i].id, 230)} alt="" draggable={false} />
+            <h3>{o.label}</h3>
+            <p>{MAPS[i].text}</p>
           </div>
         )}
       />

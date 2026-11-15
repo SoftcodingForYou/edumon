@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadWorldData, saveWorldData, type SaveSlot, type Settings } from '../game/save';
-import { TOTAL, HABITAT_NAMES } from '../game/creatures';
-import { getWorldMap } from '../world/mapgen';
+import { TOTAL } from '../game/creatures';
+import type { Elem } from '../game/elements';
+import { getWorldMap } from '../world/maps';
 import {
-  biomeOfPlayer,
+  zoneOfPlayer,
   createWorld,
   finishEncounter,
   restoreWorld,
@@ -12,7 +13,6 @@ import {
   type Outcome,
   type WorldState,
 } from '../world/world';
-import { BIOME_HABITAT } from '../world/tiles';
 import { playMusic } from '../system/audio';
 import { useBindings, useInputSource } from '../system/input';
 import { keyLabel } from '../system/keys';
@@ -22,7 +22,7 @@ import { Dex } from './Dex';
 import { SettingsPanel } from './SettingsPanel';
 import { TypeChart } from './TypeChart';
 import { WorldMapView } from './WorldMapView';
-import { Menu, TextBox, LAYER, BallIcon, EyeIcon, Qq, Ee, Tt, Mm } from './ui';
+import { Menu, TextBox, LAYER, BallIcon, EyeIcon, Qq, Ee, Tt, Mm, TypeBadge } from './ui';
 
 type Overlay =
   | { k: 'welcome' }
@@ -53,7 +53,7 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
   const worldRef = useRef<WorldState | null>(null);
   const resumed = useRef(false);
   if (!worldRef.current) {
-    const map = getWorldMap();
+    const map = getWorldMap(slot.map);
     const restored = persist ? restoreWorld(map, loadWorldData(slot.id), slot.caught) : null;
     resumed.current = restored !== null;
     worldRef.current = restored ?? createWorld(map, slot.caught);
@@ -71,8 +71,8 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
     if (initialOverlay === 'none') return null;
     return { k: 'welcome' };
   });
-  const [zone, setZone] = useState<{ name: string; n: number } | null>(null);
-  const lastBiome = useRef(-1);
+  const [zone, setZone] = useState<{ name: string; type?: Elem; n: number } | null>(null);
+  const lastZone = useRef(-1);
   const keys = useBindings();
   const source = useInputSource();
 
@@ -102,14 +102,14 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
     if (overlay?.k !== 'transition' && overlay?.k !== 'battle') playMusic('world');
   }, [overlay]);
 
-  // Show the name of the area when the player walks into a new one.
+  // Show the name of the area (or city district, with its type) when the player walks into a new one.
   useEffect(() => {
     const t = setInterval(() => {
-      const b = biomeOfPlayer(world);
-      if (b === lastBiome.current) return;
-      lastBiome.current = b;
-      const name = capitalize(HABITAT_NAMES[BIOME_HABITAT[b]]);
-      setZone({ name, n: Date.now() });
+      const z = zoneOfPlayer(world);
+      if (z === lastZone.current) return;
+      lastZone.current = z;
+      const info = world.map.zones[z];
+      if (info) setZone({ name: capitalize(info.name), type: info.type, n: Date.now() });
     }, 400);
     return () => clearInterval(t);
   }, [world]);
@@ -191,6 +191,7 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
       {zone && overlay === null && (
         <div key={zone.n} className="zone-banner">
           {zone.name}
+          {zone.type && <TypeBadge type={zone.type} />}
         </div>
       )}
 
