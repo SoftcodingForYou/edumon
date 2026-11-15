@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Juego educativo en español para peques de 4 a 6 años: explora, encuentra y atrapa 151 Edumon.",
+  "description": "Juego educativo en español para peques de 4 a 6 años: explora, encuentra y atrapa 151 Edumón.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

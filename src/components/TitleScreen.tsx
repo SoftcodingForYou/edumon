@@ -28,7 +28,7 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
         <div className="hill h2" />
       </div>
       <h1 className="logo">
-        {'EDUMON'.split('').map((ch, i) => (
+        {'EDUMÓN'.split('').map((ch, i) => (
           <span key={i} style={{ animationDelay: `${i * 0.08}s` }}>
             {ch}
           </span>

@@ -1,4 +1,4 @@
-# Edumon
+# Edumón
 
 An educational creature-collecting game in Spanish for children aged 4–6, in the spirit of the
 classic Game Boy monster-collecting games. All creatures, names, art, sounds and music are
@@ -9,7 +9,7 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 
 - Two modes, chosen when starting a new game:
   - **Normal**: free roaming in an open world with an empty Edudex plus one starter companion
-    (choice of three). Wild Edumon are chased and met in the world. To fight, the child picks
+    (choice of three). Wild Edumón are chased and met in the world. To fight, the child picks
     one of their caught creatures from a list (name + picture). Fights are turn-based, each
     creature has one representative attack. After winning, the star ball ("bola estrella",
     unlimited) catches it.
@@ -73,6 +73,8 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 
 ## Conventions
 
+- The game is called **Edumón** (accent on the o; plural stays "los Edumón") in all player-facing
+  text and docs. Code identifiers, the npm package name and the `edumon.` storage keys stay ASCII.
 - All player-facing text is Spanish, short and encouraging. There is no voice-over (the client
   removed text-to-speech because it didn't sound human); don't add it back.
 - Every screen/overlay listens with `useInput(handler, LAYER.x)`; the highest layer wins.

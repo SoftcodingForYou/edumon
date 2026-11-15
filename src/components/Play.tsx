@@ -151,8 +151,8 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
   const welcomeText = resumed.current
     ? `¡Hola de nuevo, ${slot.name}! Seguimos justo donde lo dejaste.`
     : slot.mode === 'easy'
-      ? `¡Hola, ${slot.name}! ${walk} Busca Edumon por el mundo y en la hierba alta. Cuando encuentres uno, ¡lánzale la bola estrella!`
-      : `¡Hola, ${slot.name}! ${walk} Busca Edumon por el mundo y en la hierba alta. Lucha con tus compañeros y, si ganas, ¡atrápalo!`;
+      ? `¡Hola, ${slot.name}! ${walk} Busca Edumón por el mundo y en la hierba alta. Cuando encuentres uno, ¡lánzale la bola estrella!`
+      : `¡Hola, ${slot.name}! ${walk} Busca Edumón por el mundo y en la hierba alta. Lucha con tus compañeros y, si ganas, ¡atrápalo!`;
 
   return (
     <div className="play">

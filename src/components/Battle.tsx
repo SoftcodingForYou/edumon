@@ -154,7 +154,7 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
     };
 
     const easyLoop = async () => {
-      if (slot.mode === 'normal') await text('Todavía no tienes Edumon para luchar. ¡Lanza la bola estrella!');
+      if (slot.mode === 'normal') await text('Todavía no tienes Edumón para luchar. ¡Lanza la bola estrella!');
       for (;;) {
         const c = await choose('¿Qué hacemos?', [{ label: 'Lanzar bola', icon: <BallIcon size={30} /> }, { label: 'Huir' }]);
         if (c === 1) return runAway();
@@ -242,7 +242,7 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
         fainted.add(current!);
         setMine(null);
         if (fainted.size >= team.length) {
-          await text(`Tus Edumon necesitan descansar. ${wild.name} se fue corriendo.`);
+          await text(`Tus Edumón necesitan descansar. ${wild.name} se fue corriendo.`);
           animWild('flee');
           await wait(500);
           cbs.current.onEnd('lost');
