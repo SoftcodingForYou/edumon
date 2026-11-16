@@ -106,14 +106,15 @@ export function getPlayerFrames(avatar: number): Record<Dir, HTMLCanvasElement[]
   return f;
 }
 
-const owCache = new Map<number, { left: HTMLCanvasElement[]; right: HTMLCanvasElement[] }>();
+const owCache = new Map<string, { left: HTMLCanvasElement[]; right: HTMLCanvasElement[] }>();
+/** A wild creature's look in the world: the same for every creature of its kind. */
 export function getOwFrames(sp: number) {
-  let f = owCache.get(sp);
+  const kind = getSpecies(sp).ow;
+  let f = owCache.get(kind);
   if (!f) {
-    const s = getSpecies(sp);
-    const frames = overworldFrames(s.ow, s.art.c[0], s.art.c[1] ?? '#ffffff');
+    const frames = overworldFrames(kind);
     f = { left: frames.map(toCanvas), right: frames.map((x) => toCanvas(flipH(x))) };
-    owCache.set(sp, f);
+    owCache.set(kind, f);
   }
   return f;
 }
@@ -176,9 +177,8 @@ export function avatarBackURL(avatar: number): string {
   return cachedURL('avb' + avatar, () => playerFrames(AVATARS[avatar] ?? AVATARS[0]).up[0]);
 }
 
+/** The generic world look of a creature's kind (it doesn't give away which creature it is). */
 export function genericURL(sp: number): string {
-  return cachedURL('g' + sp, () => {
-    const s = getSpecies(sp);
-    return overworldFrames(s.ow, s.art.c[0], s.art.c[1] ?? '#ffffff')[0];
-  });
+  const kind = getSpecies(sp).ow;
+  return cachedURL('g-' + kind, () => overworldFrames(kind)[0]);
 }

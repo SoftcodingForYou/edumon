@@ -27,9 +27,9 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   game behaves as if all 150 were caught (e.g. #151 roams), without adding anything to the Edudex.
   Typing it again switches it off, leaving only what was really earned.
 - Edudex: names and portraits stay hidden ("???") until met. Star-ball icon = caught,
-  eye icon = only seen. Always in Edudex-number order. Meeting a creature for the first time opens
-  its Edudex page during the battle (Action or Cancel continues). A caught creature's page shows
-  its wins / fights.
+  eye icon = only seen. Always in Edudex-number order. Catching a creature for the first time
+  shows its new Edudex page right after "¡X se ha guardado en tu Edudex!" (Action or Cancel goes
+  back to the world). A caught creature's page shows its wins / fights.
 - Fight records (`SaveSlot.record`): a fight counts when the child sends an Edumón out (once per
   battle); the win goes to the one that knocks out the wild creature. The fighter list is sorted
   by fights (most used first; never-used ones follow in Edudex order), fixed for the whole battle,
@@ -54,7 +54,8 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
     Providencia = Magia (Cerro San Cristóbal). Building roofs take the district's type colour,
     the world map tints the districts, and walking into one shows its name and type.
 - In the world, creatures use generic sprites (land, bird, water, bug, ghost, plant) so their
-  looks stay secret; battles and the Edudex show full-body portraits.
+  looks stay secret: every creature of a kind looks exactly the same (fixed colours per kind,
+  `OW_COLORS`); battles and the Edudex show full-body portraits.
 - Controls are minimal: arrows, A (default Space, shown as "Espacio"), B (default X; hold B to run), Q = menu (its own
   key, never the action button), E = Edudex, T = type chart ("Tipos", who is very effective
   against whom) and M = world map. Every button answers to exactly one key (no extra fallback
@@ -69,9 +70,12 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   capitals (default off). The goal is to teach reading, especially the creature names, so names
   are never cut off: they shrink to fit (`FitText` in `ui.tsx`).
 - Tipos (type chart): just the list of the 13 types, all on screen without scrolling.
-- Battles: every attack type has its own animation and sound (flames, bubbles, leaves, lightning,
-  falling rocks, "¡ZAS!"...); very effective hits shake the screen; a knocked-out creature shows
-  dizzy stars ("K.O.").
+- Battles: every one of the 151 attacks has its own signature animation and sound
+  (`game/attacks.ts` recipe → `components/AttackFx.tsx`): a motion (arc, stream, beam, whirlwind,
+  rain, dig, bite, slash, meteor, wrap...) with particle shapes, count, size and colours.
+  Evolutions keep their family's motif but grow; colours and the base sound follow the attack's
+  type so children still recognise types. Very effective hits (and big attacks) shake the screen;
+  a knocked-out creature shows dizzy stars ("K.O."). `?demo=attacks` plays all 151 in a row.
 - React + TypeScript + Vite (npm), runs in any modern browser.
 
 ## Commands
@@ -79,7 +83,10 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - `npm install` · `npm run dev` · `npm run build` · `npm run preview` · `npm test` · `npm run typecheck`
 - `npm run export-art` regenerates the portrait PNGs in `src/art/` (`001-chispin.png` …, 224×224;
   `npm run export-art -- 1` for the original 56×56). Run it after changing creature art or names.
-- Test URLs (throwaway save, nothing stored): `?demo=world|battle|dex|types|map|slots|new` with
+- `npm run record-attacks` records the presentation video of all 151 attacks (normal speed, with
+  sound) into `preview/edumon-ataques.mp4` (git-ignored). Needs Firefox 129+ and ffmpeg; options
+  `FROM`/`TO`, `WORKERS`, `FPS`, `OUT`, `FIREFOX` (see `scripts/record-attacks.mjs`).
+- Test URLs (throwaway save, nothing stored): `?demo=world|battle|dex|types|map|slots|new|attacks` with
   optional `&sp=25&mode=easy&biome=4&caught=12&team=1,4,7&font=pixel&upper=1&map=santiago`
   (`biome=7` is the city battle background). `?debug` exposes the world state as `window.__edu.world`.
 
@@ -100,7 +107,8 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   input handlers, key capture, keyboard/touch/gamepad source), `audio.ts` (Web Audio SFX, per-type
   attack sounds, original chiptunes).
 - `components/` – React screens: TitleScreen, SlotMenu, NewGame, Play (saving/resuming, HUD),
-  WorldView, Battle, AttackFx (attack effects + KO stars), CreaturePicker, Dex, TypeChart,
+  WorldView, Battle, AttackFx (signature attack effects + KO stars; shapes in `fxParticles.tsx`),
+  AttackShowcase (`?demo=attacks`, seekable for recording), CreaturePicker, Dex, TypeChart,
   WorldMapView, SettingsPanel, KeyBindingsPanel, TouchControls, shared `ui.tsx` (Menu, TextBox,
   KeyCap hints, type badges with icons).
 

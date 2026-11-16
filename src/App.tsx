@@ -20,6 +20,7 @@ import { NewGame, type NewGameResult } from './components/NewGame';
 import { Play } from './components/Play';
 import { SettingsPanel } from './components/SettingsPanel';
 import { TouchControls } from './components/TouchControls';
+import { AttackShowcase } from './components/AttackShowcase';
 
 type Screen = { k: 'title' } | { k: 'slots' } | { k: 'new' } | { k: 'play'; slotId: string };
 
@@ -94,6 +95,7 @@ export function App() {
     if (!demo) return { k: 'title' };
     if (demo.screen === 'slots') return { k: 'slots' };
     if (demo.screen === 'new') return { k: 'new' };
+    if (demo.screen === 'attacks') return { k: 'title' }; // the attack preview is drawn on its own
     return { k: 'play', slotId: 'demo' };
   });
   const [showSettings, setShowSettings] = useState(false);
@@ -152,7 +154,10 @@ export function App() {
         className={'stage font-' + settings.font + (settings.upper ? ' upper' : '')}
         style={{ top: layout.top, transform: `translate(-50%, -50%) scale(${layout.scale})` }}
       >
-        {screen.k === 'title' && <TitleScreen onStart={() => setScreen({ k: 'slots' })} />}
+        {demo?.screen === 'attacks' && (
+          <AttackShowcase capture={new URLSearchParams(location.search).has('capture')} start={Number(new URLSearchParams(location.search).get('sp') ?? 1)} />
+        )}
+        {screen.k === 'title' && demo?.screen !== 'attacks' && <TitleScreen onStart={() => setScreen({ k: 'slots' })} />}
         {screen.k === 'slots' && (
           <>
             <SlotMenu

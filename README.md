@@ -15,6 +15,7 @@ npm run build      # production build in dist/
 npm run preview    # serve the production build
 npm test           # unit tests
 npm run export-art # save every creature portrait as a PNG in src/art/ (e.g. 001-chispin.png)
+npm run record-attacks # video of all 151 attacks in preview/ (needs Firefox and ffmpeg)
 ```
 
 The production build is a static site (`dist/`) and can be hosted on any web server.

@@ -1,14 +1,19 @@
 // Retro sound effects and little original chiptune melodies (Web Audio API).
 
-let ctx: AudioContext | null = null;
+import { attackHitDelay, type AttackRecipe } from '../game/attacks';
+
+let ctx: BaseAudioContext | null = null;
 let sfxGain: GainNode | null = null;
 let musicGain: GainNode | null = null;
 let soundOn = true;
 let musicOn = true;
 let noiseBuf: AudioBuffer | null = null;
 let unlocked = false; // browsers only allow audio after a user gesture
+let recording = false; // rendering sounds offline (see renderSfxToWav)
+let pitchMul = 1; // bigger attacks sound lower
 
-function ensure(): AudioContext | null {
+function ensure(): BaseAudioContext | null {
+  if (recording) return ctx;
   if (typeof window === 'undefined' || !unlocked) return null;
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -27,7 +32,7 @@ function ensure(): AudioContext | null {
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
-  if (ctx.state === 'suspended') void ctx.resume();
+  if (ctx.state === 'suspended') void (ctx as AudioContext).resume();
   return ctx;
 }
 
@@ -56,8 +61,8 @@ function tone(freq: number, start: number, dur: number, type: OscillatorType = '
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = type;
-  o.frequency.setValueAtTime(freq, start);
-  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, start + dur);
+  o.frequency.setValueAtTime(freq * pitchMul, start);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo * pitchMul, start + dur);
   g.gain.setValueAtTime(0.0001, start);
   g.gain.exponentialRampToValueAtTime(vol, start + 0.008);
   g.gain.setValueAtTime(vol, start + Math.max(0.01, dur * 0.6));
@@ -74,8 +79,8 @@ function noise(start: number, dur: number, vol: number, freq: number, freqTo?: n
   src.buffer = noiseBuf;
   const f = ctx.createBiquadFilter();
   f.type = 'bandpass';
-  f.frequency.setValueAtTime(freq, start);
-  if (freqTo) f.frequency.exponentialRampToValueAtTime(freqTo, start + dur);
+  f.frequency.setValueAtTime(freq * pitchMul, start);
+  if (freqTo) f.frequency.exponentialRampToValueAtTime(freqTo * pitchMul, start + dur);
   f.Q.value = 1.2;
   const g = ctx.createGain();
   g.gain.setValueAtTime(vol, start);
@@ -107,11 +112,11 @@ export type Sfx =
   | 'error'
   | 'type';
 
-export function sfx(name: Sfx) {
+export function sfx(name: Sfx, at?: number) {
   if (!soundOn) return;
   const c = ensure();
   if (!c) return;
-  const t = c.currentTime + 0.01;
+  const t = at ?? c.currentTime + 0.01;
   switch (name) {
     case 'move':
       tone(990, t, 0.035, 'square', 0.35);
@@ -182,12 +187,137 @@ export function sfx(name: Sfx) {
   }
 }
 
-/** A different little sound for every attack type. */
-export function attackSfx(type: string) {
+/**
+ * The sound of an attack: its type's sound (so types stay recognisable) plus an accent for the
+ * way it moves (thuds for rain and stomps, snaps for bites, swishes for slashes...). Bigger
+ * attacks sound lower. `at`: when to play (seconds, for offline recording).
+ */
+export function attackSfx(type: string, recipe?: AttackRecipe, at?: number) {
   if (!soundOn) return;
   const c = ensure();
   if (!c) return;
-  const t = c.currentTime + 0.01;
+  const t = at ?? c.currentTime + 0.01;
+  pitchMul = recipe ? 1 / Math.sqrt(Math.max(0.6, recipe.size)) : 1;
+  typeSound(type, t);
+  if (recipe) motionSound(recipe, t);
+  pitchMul = 1;
+}
+
+function motionSound(r: AttackRecipe, t: number) {
+  const hit = attackHitDelay(r) / 1000;
+  switch (r.motion) {
+    case 'beam':
+      tone(300, t, hit + 0.25, 'sawtooth', 0.16, 900);
+      break;
+    case 'ring':
+      [0, 0.13, 0.26].forEach((d) => tone(440, t + d, 0.12, 'square', 0.2, 300));
+      break;
+    case 'rain':
+    case 'meteor':
+    case 'stomp':
+    case 'quake':
+      tone(75, t + hit, 0.3, 'square', 0.45, 40);
+      noise(t + hit, 0.3, 0.7, 260);
+      break;
+    case 'bite':
+      for (let i = 0; i < r.count; i++) noise(t + hit - 0.02 + i * 0.26, 0.06, 0.9, 2600);
+      break;
+    case 'slash':
+      for (let i = 0; i < r.count; i++) noise(t + 0.06 + i * 0.08, 0.09, 0.7, 1800, 5000);
+      break;
+    case 'dash':
+    case 'punch':
+      noise(t, hit, 0.5, 600, 2400);
+      break;
+    case 'dig':
+      noise(t, hit, 0.5, 120, 300);
+      break;
+    case 'float':
+      [880, 1108, 1318].forEach((f, i) => tone(f, t + i * 0.18, 0.2, 'sine', 0.2));
+      break;
+    case 'flash':
+      [2093, 2637, 3136].forEach((f, i) => tone(f, t + i * 0.04, 0.25, 'triangle', 0.15));
+      break;
+    case 'wrap':
+      tone(200, t, hit, 'triangle', 0.25, 120);
+      break;
+    case 'cloud':
+      noise(t, hit, 0.35, 900, 500);
+      break;
+    case 'shield':
+      tone(500, t, 0.4, 'sine', 0.25, 1200);
+      break;
+    case 'orbit':
+      [600, 800, 1000, 1200].forEach((f, i) => tone(f, t + i * 0.12, 0.12, 'sine', 0.2));
+      break;
+    case 'arc':
+      tone(500, t, hit / 2, 'sine', 0.2, 1100);
+      tone(1100, t + hit / 2, hit / 2, 'sine', 0.2, 400);
+      break;
+    case 'whirl':
+    case 'spiral':
+      noise(t, hit, 0.5, 400, 2400);
+      break;
+    case 'burst':
+      noise(t + hit, 0.18, 0.7, 1500);
+      break;
+    case 'wave':
+      noise(t, hit + 0.2, 0.55, 300, 1200);
+      break;
+    case 'bolt':
+      noise(t + hit - 0.1, 0.25, 0.8, 3800);
+      break;
+    case 'rise':
+      tone(150, t, hit, 'triangle', 0.3, 400);
+      break;
+    default:
+      break;
+  }
+}
+
+/**
+ * Render sounds offline into a WAV file (used to give the attack preview video its sound).
+ * `schedule` calls sfx / attackSfx with `at` times in seconds.
+ */
+export async function renderSfxToWav(seconds: number, schedule: () => void): Promise<Blob> {
+  const rate = 44100;
+  const off = new OfflineAudioContext(1, Math.ceil(seconds * rate), rate);
+  const saved = { ctx, sfxGain, noiseBuf, soundOn, recording };
+  ctx = off;
+  sfxGain = off.createGain();
+  sfxGain.gain.value = 0.2 * 0.9;
+  sfxGain.connect(off.destination);
+  noiseBuf = off.createBuffer(1, rate, rate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  soundOn = true;
+  recording = true;
+  try {
+    schedule();
+  } finally {
+    ({ ctx, sfxGain, noiseBuf, soundOn, recording } = saved);
+  }
+  const buf = await off.startRendering();
+  const pcm = buf.getChannelData(0);
+  const out = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+  const str = (o: number, s: string) => [...s].forEach((ch, i) => out.setUint8(o + i, ch.charCodeAt(0)));
+  str(0, 'RIFF');
+  out.setUint32(4, 36 + pcm.length * 2, true);
+  str(8, 'WAVEfmt ');
+  out.setUint32(16, 16, true);
+  out.setUint16(20, 1, true);
+  out.setUint16(22, 1, true);
+  out.setUint32(24, rate, true);
+  out.setUint32(28, rate * 2, true);
+  out.setUint16(32, 2, true);
+  out.setUint16(34, 16, true);
+  str(36, 'data');
+  out.setUint32(40, pcm.length * 2, true);
+  for (let i = 0; i < pcm.length; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, pcm[i])) * 0x7fff, true);
+  return new Blob([out.buffer], { type: 'audio/wav' });
+}
+
+function typeSound(type: string, t: number) {
   switch (type) {
     case 'fuego':
       noise(t, 0.45, 0.8, 500, 2600);

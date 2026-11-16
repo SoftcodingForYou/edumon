@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { getSpecies, MYTHICAL_ID, TOTAL, type Species } from '../game/creatures';
-import type { Elem } from '../game/elements';
 import { attackDamage, easyCatchChance, easyFleeChance, playerMaxHp, rollCatch, wildMaxHp } from '../game/battle';
 import { byUse, type SaveSlot } from '../game/save';
 import { mythicalUnlocked, type Encounter, type Outcome } from '../world/world';
 import { BIOME_BG } from '../world/tiles';
 import { avatarBackURL, ballURL, portraitBounds, portraitURL } from '../art/assets';
 import { attackSfx, playMusic, sfx } from '../system/audio';
+import { attackRecipe } from '../game/attacks';
 import { Menu, TextBox, LAYER, TypeBadge, HpBar, BallIcon, type Opt } from './ui';
 import { CreaturePicker } from './CreaturePicker';
 import { Dex } from './Dex';
@@ -56,7 +56,7 @@ export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: P
   const [wildAnim, setWildAnim] = useState<{ a: SpriteAnim; n: number }>({ a: 'enter', n: 0 });
   const [mineAnim, setMineAnim] = useState<{ a: SpriteAnim; n: number }>({ a: 'hidden', n: 0 });
   const [ball, setBall] = useState<{ a: BallAnim; n: number }>({ a: 'none', n: 0 });
-  const [fx, setFx] = useState<{ from: 'mine' | 'wild'; type: Elem; strong: boolean; n: number } | null>(null);
+  const [fx, setFx] = useState<{ from: 'mine' | 'wild'; sp: number; strong: boolean; n: number } | null>(null);
   const [shake, setShake] = useState(false);
   const [newBadge, setNewBadge] = useState(false);
   const started = useRef(false);
@@ -116,7 +116,7 @@ export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: P
         }),
       );
 
-    /** The Edudex page of a creature met for the first time (Action or Cancel continues). */
+    /** The Edudex page of a newly caught creature (Action or Cancel continues). */
     const dexPage = () =>
       new Promise<void>((r) =>
         setUi({
@@ -167,6 +167,7 @@ export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: P
       if (!init.wasCaught) {
         sfx('newdex');
         await text(`¡${wild.name} se ha guardado en tu Edudex!`);
+        await dexPage(); // its new Edudex page, before going back to the world
         if (wild.id !== MYTHICAL_ID && !slot.allUnlocked && !mythicalUnlocked(slot.caught) && mythicalUnlocked([...slot.caught, wild.id])) {
           sfx('newdex');
           await text('¡Has atrapado a los 150! Ahora un Edumón misterioso pasea por todo el mundo. ¡Búscalo en el mapa!');
@@ -230,11 +231,12 @@ export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: P
         const hit = attackDamage(att, def, fromMine, Math.random);
         if (fromMine) animMine('lunge');
         else animWild('lunge');
-        attackSfx(type);
-        setFx({ from: fromMine ? 'mine' : 'wild', type, strong: hit.mult > 1, n: next() });
-        await wait(fxHitDelay(type));
+        const recipe = attackRecipe(att.id);
+        attackSfx(type, recipe);
+        setFx({ from: fromMine ? 'mine' : 'wild', sp: att.id, strong: hit.mult > 1, n: next() });
+        await wait(fxHitDelay(att.id));
         sfx(hit.mult > 1 ? 'super' : hit.mult < 1 ? 'weak' : 'hit');
-        if (hit.mult > 1 || hit.crit) {
+        if (hit.mult > 1 || hit.crit || recipe.shake) {
           setShake(true);
           setTimeout(() => setShake(false), 420);
         }
@@ -333,7 +335,6 @@ export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: P
         sfx('newdex');
       }
       await text(init.wasSeen ? `¡Mira! ¡Un ${wild.name} salvaje!` : `¡Mira! ¡Un ${wild.name} salvaje! ¡Es la primera vez que lo ves!`);
-      if (!init.wasSeen) await dexPage();
       if (wild.mythical && !easy) await text('¡Cuidado! Es cinco veces más fuerte que los demás Edumón. ¡Tus compañeros tendrán que turnarse!');
       if (easy) await easyLoop();
       else await normalLoop();
@@ -387,7 +388,7 @@ export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: P
         </div>
       )}
 
-      {fx && <AttackFx key={'f' + fx.n} from={fx.from} type={fx.type} strong={fx.strong} />}
+      {fx && <AttackFx key={'f' + fx.n} from={fx.from} sp={fx.sp} strong={fx.strong} />}
 
       <div className="panel binfo wild-info">
         <div className="binfo-name">
@@ -452,7 +453,11 @@ export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: P
       {ui.k === 'dex' && (
         <Dex
           key={ui.n}
-          slot={{ ...slot, seen: slot.seen.includes(wild.id) ? slot.seen : [...slot.seen, wild.id] }}
+          slot={{
+            ...slot,
+            seen: slot.seen.includes(wild.id) ? slot.seen : [...slot.seen, wild.id],
+            caught: slot.caught.includes(wild.id) ? slot.caught : [...slot.caught, wild.id],
+          }}
           only={wild.id}
           onClose={ui.done}
         />

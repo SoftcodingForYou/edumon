@@ -148,8 +148,22 @@ const OW_ART: Record<OwKind, string[][]> = {
   bird: [BIRD_DOWN, BIRD_UP],
 };
 
-/** Frames (facing left) for a generic overworld creature tinted with its colors. */
-export function overworldFrames(kind: OwKind, body: string, light: string): PixelImage[] {
+/**
+ * One fixed look per kind: in the world all creatures of a kind look exactly the same, so
+ * children can't tell which Edumón it is until they meet it.
+ */
+export const OW_COLORS: Record<OwKind, [string, string]> = {
+  land: ['#c89a62', '#f4e2c0'],
+  bird: ['#9a7a5a', '#f0e0c8'],
+  water: ['#4a8ae0', '#cfe6ff'],
+  bug: ['#8ab83a', '#e8f4b0'],
+  ghost: ['#b8a8e0', '#f4eeff'],
+  plant: ['#5ab04a', '#e0f4c0'],
+};
+
+/** Frames (facing left) for a generic overworld creature of a kind. */
+export function overworldFrames(kind: OwKind): PixelImage[] {
+  const [body, light] = OW_COLORS[kind];
   const pal = {
     o: mix(body, '#140c1c', 0.78),
     b: body,
