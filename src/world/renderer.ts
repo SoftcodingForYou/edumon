@@ -1,6 +1,6 @@
 // Draws the world (map, wild Edumon and the player) onto a small canvas.
 
-import { getGrassFront, getMapCanvas, getOwFrames, getPlayerFrames } from '../art/assets';
+import { getGrassFront, getMapPixels, getOwFrames, getPlayerFrames } from '../art/assets';
 import { hash2 } from '../game/rng';
 import { T } from './tiles';
 import { TILE } from './tileArt';
@@ -29,7 +29,8 @@ export function renderWorld(ctx: CanvasRenderingContext2D, ws: WorldState, avata
   const camY = Math.max(0, Math.min(maxY, Math.round(ppy + TILE / 2 - VIEW_H / 2)));
 
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(getMapCanvas(map), camX, camY, VIEW_W, VIEW_H, 0, 0, VIEW_W, VIEW_H);
+  // Copy the visible part of the world from plain pixel data (see assets.ts: nothing to lose).
+  ctx.putImageData(getMapPixels(map), -camX, -camY, camX, camY, VIEW_W, VIEW_H);
 
   // Gentle water sparkles and bubbling lava.
   const tx0 = Math.floor(camX / TILE);

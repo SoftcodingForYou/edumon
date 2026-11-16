@@ -1,4 +1,9 @@
 // Browser-side image caches (canvases and data URLs) built from the pixel art.
+//
+// iOS Safari may throw away the pixels of canvases when memory runs short (e.g. during a
+// battle), and a canvas that is never redrawn then stays blank. So the big world picture is
+// kept as plain pixel data (ImageData, ordinary memory) and the small sprite canvases are
+// rebuilt whenever the player comes back to the world (refreshWorldArt).
 
 import { drawCreature } from './creatureArt';
 import type { PixelImage } from './raster';
@@ -11,6 +16,12 @@ import type { MapId, WorldMap } from '../world/tiles';
 
 const urlCache = new Map<string, string>();
 
+/** Give a canvas' memory back right away (Safari only frees it late otherwise). */
+export function releaseCanvas(cv: HTMLCanvasElement) {
+  cv.width = 0;
+  cv.height = 0;
+}
+
 export function toCanvas(img: PixelImage): HTMLCanvasElement {
   const cv = document.createElement('canvas');
   cv.width = img.w;
@@ -22,14 +33,25 @@ export function toCanvas(img: PixelImage): HTMLCanvasElement {
   return cv;
 }
 
-const mapCanvases = new Map<string, HTMLCanvasElement>();
-/** The whole world drawn once (16 px per tile). */
-export function getMapCanvas(map: WorldMap): HTMLCanvasElement {
-  let cv = mapCanvases.get(map.id);
-  if (!cv) {
-    cv = toCanvas(renderMapPixels(map));
-    mapCanvases.set(map.id, cv);
+const mapPixels = new Map<string, ImageData>();
+/** The whole world drawn once (16 px per tile), as pixel data that can't get lost. */
+export function getMapPixels(map: WorldMap): ImageData {
+  let id = mapPixels.get(map.id);
+  if (!id) {
+    const img = renderMapPixels(map);
+    id = new ImageData(img.data, img.w, img.h);
+    mapPixels.set(map.id, id);
   }
+  return id;
+}
+
+/** A fresh canvas with the whole world on it; free it with releaseCanvas when done. */
+export function makeMapCanvas(map: WorldMap): HTMLCanvasElement {
+  const id = getMapPixels(map);
+  const cv = document.createElement('canvas');
+  cv.width = id.width;
+  cv.height = id.height;
+  cv.getContext('2d')!.putImageData(id, 0, 0);
   return cv;
 }
 
@@ -39,7 +61,7 @@ export function mapPreviewURL(id: MapId, w: number): string {
   let u = urlCache.get(key);
   if (!u) {
     const map = getWorldMap(id);
-    const src = getMapCanvas(map);
+    const src = makeMapCanvas(map);
     const cv = document.createElement('canvas');
     cv.width = w;
     cv.height = Math.round((w * map.h) / map.w);
@@ -48,9 +70,18 @@ export function mapPreviewURL(id: MapId, w: number): string {
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(src, 0, 0, cv.width, cv.height);
     u = cv.toDataURL('image/png');
+    releaseCanvas(src);
+    releaseCanvas(cv);
     urlCache.set(key, u);
   }
   return u;
+}
+
+/** Forget the sprite canvases so they are drawn again (they may have been wiped meanwhile). */
+export function refreshWorldArt() {
+  grass = null;
+  playerCache.clear();
+  owCache.clear();
 }
 
 let grass: HTMLCanvasElement | null = null;
@@ -90,7 +121,9 @@ export function getOwFrames(sp: number) {
 function cachedURL(key: string, make: () => PixelImage): string {
   let u = urlCache.get(key);
   if (!u) {
-    u = toCanvas(make()).toDataURL('image/png');
+    const cv = toCanvas(make());
+    u = cv.toDataURL('image/png');
+    releaseCanvas(cv);
     urlCache.set(key, u);
   }
   return u;

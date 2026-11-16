@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { clearTaps, frameDir, isHeld, useInput } from '../system/input';
 import { sfx } from '../system/audio';
 import { updateWorld, type Encounter, type WorldState } from '../world/world';
 import { renderWorld, VIEW_H, VIEW_W } from '../world/renderer';
+import { refreshWorldArt } from '../art/assets';
 import { LAYER } from './ui';
 
 interface Props {
@@ -21,6 +22,31 @@ interface Props {
 export function WorldView({ world, avatar, paused, onEncounter, onMenu, onDex, onTypes, onMap, onAutosave }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pausedRef = useRef(paused);
+  // Every time the world shows again (after a battle, the map, the menu...) or the page comes
+  // back from the background, it gets a brand-new canvas and freshly drawn sprites: iOS Safari
+  // may have wiped canvases meanwhile, which left a black screen after battles.
+  const [gen, setGen] = useState(0);
+  const wasPaused = useRef(paused);
+  useEffect(() => {
+    if (wasPaused.current && !paused) {
+      refreshWorldArt();
+      setGen((g) => g + 1);
+    }
+    wasPaused.current = paused;
+  }, [paused]);
+  useEffect(() => {
+    const onShow = () => {
+      if (document.hidden) return;
+      refreshWorldArt();
+      setGen((g) => g + 1);
+    };
+    document.addEventListener('visibilitychange', onShow);
+    window.addEventListener('pageshow', onShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onShow);
+      window.removeEventListener('pageshow', onShow);
+    };
+  }, []);
   const cb = useRef({ onEncounter, onMenu, onDex, onTypes, onMap, onAutosave });
   cb.current = { onEncounter, onMenu, onDex, onTypes, onMap, onAutosave };
   pausedRef.current = paused;
@@ -71,7 +97,7 @@ export function WorldView({ world, avatar, paused, onEncounter, onMenu, onDex, o
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [world, avatar]);
+  }, [world, avatar, gen]);
 
-  return <canvas ref={canvasRef} width={VIEW_W} height={VIEW_H} className="world-canvas" />;
+  return <canvas key={gen} ref={canvasRef} width={VIEW_W} height={VIEW_H} className="world-canvas" />;
 }

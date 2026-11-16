@@ -96,6 +96,10 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - Never hard-code key names in hints: use `<A />`, `<Bb />`, `<Qq />`, `<Ee />`, `<Tt />`, `<Mm />`, `<DirKeys />`
   (they follow the player's key bindings and input device).
 - The stage is 768×576 logical px (world canvas 256×192 drawn at 3×), scaled to fit the window.
+- iOS Safari can wipe canvases when memory runs short (this caused a black world after battles).
+  Don't keep big long-lived canvases: the world background is copied each frame from plain
+  `ImageData` (`getMapPixels`), the world gets a fresh canvas and sprites whenever it shows again
+  (`refreshWorldArt`), and temporary canvases are freed with `releaseCanvas`.
 - Font sizes in `styles.css` are written as `calc(Npx * var(--fs, 1))`: `--fs` shrinks the wider
   fine font so both letter styles fit the same boxes. Check new screens in both styles and in capitals.
 - Edudex numbers come from the order of `FAMILIES`, and saves store those numbers: inserting or

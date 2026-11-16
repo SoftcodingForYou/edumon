@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { avatarURL, ballURL, getMapCanvas } from '../art/assets';
+import { avatarURL, ballURL, makeMapCanvas, releaseCanvas } from '../art/assets';
 import { ELEMS } from '../game/elements';
 import type { WorldMap } from '../world/tiles';
 import { zoneOfPlayer, type WorldState } from '../world/world';
@@ -35,6 +35,7 @@ function drawDistricts(ctx: CanvasRenderingContext2D, m: WorldMap, w: number, h:
   c2.putImageData(img, 0, 0);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(cv, 0, 0, m.w, m.h, 0, 0, w, h);
+  releaseCanvas(cv);
 }
 
 const MAP_H = 412; // on-screen height of the map in stage pixels
@@ -52,8 +53,9 @@ export function WorldMapView({ world, caught, avatar, onClose }: { world: WorldS
     if (!ctx) return;
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    const src = getMapCanvas(m);
+    const src = makeMapCanvas(m);
     ctx.drawImage(src, 0, 0, src.width, src.height, 0, 0, mapW, MAP_H);
+    releaseCanvas(src);
     if (m.zones.some((z) => z.type)) drawDistricts(ctx, m, mapW, MAP_H);
   }, [m, mapW]);
 
