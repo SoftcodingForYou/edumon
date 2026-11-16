@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  byUse,
+  countFight,
+  countWin,
   createSlot,
   deleteSlot,
   loadSettings,
@@ -76,6 +79,27 @@ describe('save slots', () => {
     const slots = loadSlots();
     expect(slots).toHaveLength(1);
     expect(slots[0]).toMatchObject({ name: 'Leo', mode: 'normal', map: 'estaciones', caught: [3], seen: [2, 3] }); // games from before the second map
+  });
+
+  it('keeps a fight record for each Edumón and offers the most used first', () => {
+    let r = createSlot('Teo', 'normal', 0, { caught: [1] }).record;
+    expect(r).toEqual({});
+    r = countFight(r, 7); // sent out, lost
+    r = countWin(countFight(r, 4), 4); // sent out, won
+    r = countWin(countFight(r, 4), 4);
+    expect(r).toEqual({ 7: { fights: 1, wins: 0 }, 4: { fights: 2, wins: 2 } });
+    expect(byUse([1, 4, 7, 9], r)).toEqual([4, 7, 1, 9]); // never used: Edudex order
+    // stored and loaded with the slot; broken entries are dropped
+    const slot = { ...loadSlots()[0], record: { ...r, 999: { fights: 1, wins: 0 }, 9: { fights: 2, wins: 5 } } };
+    saveSlot(slot);
+    expect(loadSlots()[0].record).toEqual({ ...r, 9: { fights: 2, wins: 2 } });
+  });
+
+  it('remembers the secret unlock per game (off for new and old games)', () => {
+    const s = createSlot('Kai', 'normal', 0);
+    expect(s.allUnlocked).toBe(false);
+    saveSlot({ ...s, allUnlocked: true });
+    expect(loadSlots().find((x) => x.name === 'Kai')?.allUnlocked).toBe(true);
   });
 
   it('remembers the map of each game', () => {

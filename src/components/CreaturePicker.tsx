@@ -1,7 +1,8 @@
 import { getSpecies, type Species } from '../game/creatures';
 import { effectiveness } from '../game/elements';
+import { NO_FIGHTS, type FightRecords } from '../game/save';
 import { portraitURL } from '../art/assets';
-import { Menu, LAYER, TypeBadge, KeyHint, A, Bb, FitText } from './ui';
+import { Menu, LAYER, TypeBadge, KeyHint, A, Bb, FitText, CupIcon } from './ui';
 
 interface Props {
   team: number[];
@@ -10,11 +11,15 @@ interface Props {
   current?: number | null;
   title: string;
   allowCancel: boolean;
+  record: FightRecords;
   onDone: (id: number | null) => void;
 }
 
-/** Grid of all caught Edumon (name + picture) to choose a fighter. */
-export function CreaturePicker({ team, wild, exclude, current, title, allowCancel, onDone }: Props) {
+/**
+ * Grid of all caught Edumón (name + picture) to choose a fighter, most used first (the order is
+ * decided by the battle). The corner shows its wins / fights.
+ */
+export function CreaturePicker({ team, wild, exclude, current, title, allowCancel, record, onDone }: Props) {
   const hint = (s: Species) => {
     const m = effectiveness(s.types[0], wild.types);
     return m > 1 ? 'strong' : m < 1 ? 'weak' : '';
@@ -23,6 +28,7 @@ export function CreaturePicker({ team, wild, exclude, current, title, allowCance
     <div className="picker">
       <h2 className="picker-title">{title}</h2>
       <Menu
+          scroll
         options={team.map((id) => {
           const s = getSpecies(id);
           return {
@@ -38,8 +44,13 @@ export function CreaturePicker({ team, wild, exclude, current, title, allowCance
         render={(o, i, sel) => {
           const s = getSpecies(team[i]);
           const h = hint(s);
+          const r = record[s.id] ?? NO_FIGHTS;
           return (
             <div className={'pick-card' + (sel ? ' sel' : '') + (o.disabled ? ' tired' : '')}>
+              <span className="pick-record" title={`${r.wins} victorias en ${r.fights} combates`}>
+                <CupIcon />
+                {r.wins}/{r.fights}
+              </span>
               <img className="pix" src={portraitURL(s.id)} alt={s.name} draggable={false} />
               <FitText className="pick-name">{s.name}</FitText>
               <FitText className="pick-types">

@@ -64,6 +64,15 @@ const KEY_LABELS: Record<string, string> = {
   ContextMenu: 'Menú',
 };
 
+/** Secret word: typed while walking in the world, it unlocks everything (see Play). Don't show it anywhere. */
+export const SECRET_CODE = 'eduboss';
+
+/** The last letters typed (lower-case), just enough to recognise the secret code. */
+export function typedTail(tail: string, key: string): string {
+  if (key.length !== 1 || !/\p{L}/u.test(key)) return tail;
+  return (tail + key.toLocaleLowerCase('es')).slice(-SECRET_CODE.length);
+}
+
 /** The button a key press means: exactly one key per button, no extra keys. */
 export function buttonForKey(bindings: KeyBindings, key: string, typing = false): Btn | null {
   const k = normalizeKey(key);

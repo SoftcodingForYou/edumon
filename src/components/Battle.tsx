@@ -1,21 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { getSpecies, TOTAL, type Species } from '../game/creatures';
-import { ELEMS, type Elem } from '../game/elements';
+import { getSpecies, MYTHICAL_ID, TOTAL, type Species } from '../game/creatures';
+import type { Elem } from '../game/elements';
 import { attackDamage, easyCatchChance, easyFleeChance, playerMaxHp, rollCatch, wildMaxHp } from '../game/battle';
-import type { SaveSlot } from '../game/save';
-import type { Encounter, Outcome } from '../world/world';
+import { byUse, type SaveSlot } from '../game/save';
+import { mythicalUnlocked, type Encounter, type Outcome } from '../world/world';
 import { BIOME_BG } from '../world/tiles';
 import { avatarBackURL, ballURL, portraitBounds, portraitURL } from '../art/assets';
 import { attackSfx, playMusic, sfx } from '../system/audio';
 import { Menu, TextBox, LAYER, TypeBadge, HpBar, BallIcon, type Opt } from './ui';
 import { CreaturePicker } from './CreaturePicker';
+import { Dex } from './Dex';
 import { AttackFx, KoStars, fxHitDelay } from './AttackFx';
 
 type UI =
   | { k: 'none'; n: number }
-  | { k: 'text'; n: number; text: string; auto?: number; done: () => void }
+  | { k: 'text'; n: number; text: string; auto?: number; ball?: boolean; done: () => void }
   | { k: 'menu'; n: number; prompt: string; options: Opt[]; done: (i: number) => void }
-  | { k: 'pick'; n: number; title: string; allowCancel: boolean; exclude: number[]; current: number | null; done: (id: number | null) => void };
+  | { k: 'pick'; n: number; title: string; allowCancel: boolean; exclude: number[]; current: number | null; done: (id: number | null) => void }
+  | { k: 'dex'; n: number; done: () => void };
 
 type SpriteAnim = 'enter' | 'idle' | 'lunge' | 'hit' | 'faint' | 'tired' | 'ko' | 'absorb' | 'appear' | 'flee' | 'leave' | 'hidden';
 type BallAnim = 'none' | 'throw' | 'land' | 'wobble' | 'caught' | 'open';
@@ -25,16 +27,20 @@ interface Props {
   slot: SaveSlot;
   onSeen: (id: number) => void;
   onCaught: (id: number) => void;
+  onFight: (id: number) => void; // one of the child's Edumón was sent out to fight
+  onWin: (id: number) => void; // ...and knocked out the wild one
   onEnd: (o: Outcome) => void;
 }
 
 const pickOne = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 
-export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
+export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: Props) {
   const wild = getSpecies(enc.sp);
   const init = useRef({
     easy: slot.mode === 'easy' || slot.caught.length === 0,
-    team: [...slot.caught].sort((a, b) => a - b),
+    // most used fighters first; the order stays the same for the whole battle
+    team: byUse(slot.caught, slot.record),
+    record: slot.record,
     wasSeen: slot.seen.includes(enc.sp),
     wasCaught: slot.caught.includes(enc.sp),
     caughtBefore: slot.caught.length,
@@ -54,8 +60,8 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
   const [shake, setShake] = useState(false);
   const [newBadge, setNewBadge] = useState(false);
   const started = useRef(false);
-  const cbs = useRef({ onSeen, onCaught, onEnd });
-  cbs.current = { onSeen, onCaught, onEnd };
+  const cbs = useRef({ onSeen, onCaught, onFight, onWin, onEnd });
+  cbs.current = { onSeen, onCaught, onFight, onWin, onEnd };
 
   useEffect(() => {
     if (started.current) return;
@@ -65,13 +71,15 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
     const animMine = (a: SpriteAnim) => setMineAnim({ a, n: next() });
     const animBall = (a: BallAnim) => setBall({ a, n: next() });
     const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-    const text = (t: string, auto?: number) =>
+    /** A message; `ball`: continuing throws the star ball (shown next to the arrow). */
+    const text = (t: string, auto?: number, ball?: boolean) =>
       new Promise<void>((r) =>
         setUi({
           k: 'text',
           n: next(),
           text: t,
           auto,
+          ball,
           done: () => {
             setUi({ k: 'none', n: next() });
             r();
@@ -104,6 +112,19 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
           done: (id) => {
             setUi({ k: 'none', n: next() });
             r(id);
+          },
+        }),
+      );
+
+    /** The Edudex page of a creature met for the first time (Action or Cancel continues). */
+    const dexPage = () =>
+      new Promise<void>((r) =>
+        setUi({
+          k: 'dex',
+          n: next(),
+          done: () => {
+            setUi({ k: 'none', n: next() });
+            r();
           },
         }),
       );
@@ -146,6 +167,10 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
       if (!init.wasCaught) {
         sfx('newdex');
         await text(`¡${wild.name} se ha guardado en tu Edudex!`);
+        if (wild.id !== MYTHICAL_ID && !slot.allUnlocked && !mythicalUnlocked(slot.caught) && mythicalUnlocked([...slot.caught, wild.id])) {
+          sfx('newdex');
+          await text('¡Has atrapado a los 150! Ahora un Edumón misterioso pasea por todo el mundo. ¡Búscalo en el mapa!');
+        }
         if (init.caughtBefore + 1 >= TOTAL) await text('¡Increíble! ¡Has completado el Edudex entero! ¡Eres una gran exploradora o un gran explorador!');
       } else {
         await text(`Ya tenías a ${wild.name} en tu Edudex. ¡Ahora tiene un amigo más!`);
@@ -175,12 +200,17 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
 
     const normalLoop = async () => {
       const fainted = new Set<number>();
+      const counted = new Set<number>(); // each fighter counts one fight per battle
       let current: number | null = null;
       let cur: Species = wild;
       let curHp = 0;
       let wHp = wildMaxHp(wild);
 
       const sendOut = async (id: number) => {
+        if (!counted.has(id)) {
+          counted.add(id);
+          cbs.current.onFight(id);
+        }
         current = id;
         cur = getSpecies(id);
         curHp = playerMaxHp(cur);
@@ -261,9 +291,8 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
       }
 
       for (;;) {
-        const tname = ELEMS[cur.types[0]].name;
         const act = await choose(`¿Qué hace ${cur.name}?`, [
-          { label: cur.attack, sub: `Tipo ${tname}` },
+          { label: cur.attack, after: <TypeBadge type={cur.types[0]} small /> },
           { label: 'Cambiar' },
           { label: 'Huir' },
         ]);
@@ -280,10 +309,11 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
           continue;
         }
         if (await doAttack(true)) {
+          cbs.current.onWin(current!);
           sfx('faint');
           animWild('tired');
-          await text(`¡${wild.name} está K.O.! ¡Es tu oportunidad!`);
-          await choose('¡Lanza la bola estrella!', [{ label: 'Lanzar bola', icon: <BallIcon size={30} /> }]);
+          // Catching is sure now, so no menu: Action or Cancel throws the ball right away.
+          await text(`¡${wild.name} está K.O.! ¡Lanza la bola estrella!`, undefined, true);
           await throwBall({ shakes: 3, caught: true });
           return celebrate();
         }
@@ -303,6 +333,8 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
         sfx('newdex');
       }
       await text(init.wasSeen ? `¡Mira! ¡Un ${wild.name} salvaje!` : `¡Mira! ¡Un ${wild.name} salvaje! ¡Es la primera vez que lo ves!`);
+      if (!init.wasSeen) await dexPage();
+      if (wild.mythical && !easy) await text('¡Cuidado! Es cinco veces más fuerte que los demás Edumón. ¡Tus compañeros tendrán que turnarse!');
       if (easy) await easyLoop();
       else await normalLoop();
     };
@@ -382,18 +414,26 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
       )}
 
       <div className="bbottom">
-        {ui.k === 'text' && <TextBox key={ui.n} text={ui.text} auto={ui.auto} onDone={ui.done} layer={LAYER.battle} />}
+        {ui.k === 'text' && (
+          <TextBox key={ui.n} text={ui.text} auto={ui.auto} onDone={ui.done} layer={LAYER.battle}>
+            {ui.ball && (
+              <span className="tb-ball">
+                <BallIcon size={38} />
+              </span>
+            )}
+          </TextBox>
+        )}
         {ui.k === 'menu' && (
           <div className="bmenu">
             <div className="textbox prompt">
               <p>{ui.prompt}</p>
             </div>
             <div className="panel bmenu-opts">
-              <Menu key={ui.n} options={ui.options} onSelect={ui.done} layer={LAYER.battle} />
+              <Menu key={ui.n} options={ui.options} onSelect={ui.done} layer={LAYER.battle} oneLine />
             </div>
           </div>
         )}
-        {(ui.k === 'none' || ui.k === 'pick') && <div className="textbox empty" />}
+        {(ui.k === 'none' || ui.k === 'pick' || ui.k === 'dex') && <div className="textbox empty" />}
       </div>
 
       {ui.k === 'pick' && (
@@ -405,7 +445,16 @@ export function Battle({ enc, slot, onSeen, onCaught, onEnd }: Props) {
           current={ui.current}
           title={ui.title}
           allowCancel={ui.allowCancel}
+          record={slot.record}
           onDone={ui.done}
+        />
+      )}
+      {ui.k === 'dex' && (
+        <Dex
+          key={ui.n}
+          slot={{ ...slot, seen: slot.seen.includes(wild.id) ? slot.seen : [...slot.seen, wild.id] }}
+          only={wild.id}
+          onClose={ui.done}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BTN_ORDER, DEFAULT_KEYS, buttonForKey, keyLabel, rebind, sanitizeBindings } from '../system/keys';
+import { BTN_ORDER, DEFAULT_KEYS, SECRET_CODE, buttonForKey, keyLabel, rebind, sanitizeBindings, typedTail } from '../system/keys';
 import { TYPE_ORDER, strongAgainst, weakAgainst, effectiveness } from '../game/elements';
 
 describe('key bindings', () => {
@@ -26,6 +26,13 @@ describe('key bindings', () => {
     // only while typing a name: Intro confirms and Esc goes back
     expect(buttonForKey(DEFAULT_KEYS, 'Enter', true)).toBe('a');
     expect(buttonForKey(DEFAULT_KEYS, 'Escape', true)).toBe('b');
+  });
+
+  it('recognises the secret code among other keys', () => {
+    let tail = '';
+    for (const k of ['ArrowUp', 'x', 'E', 'd', ' ', 'u', 'B', 'o', 's', 'Shift', 's']) tail = typedTail(tail, k);
+    expect(tail).toBe(SECRET_CODE); // letters only, any case; arrows, Shift and spaces don't count
+    expect(typedTail(tail, 'a')).not.toBe(SECRET_CODE);
   });
 
   it('shows friendly key names', () => {

@@ -3,6 +3,7 @@
 import { getGrassFront, getMapPixels, getOwFrames, getPlayerFrames } from '../art/assets';
 import { hash2 } from '../game/rng';
 import { T } from './tiles';
+import { MYTHICAL_ID } from '../game/creatures';
 import { TILE } from './tileArt';
 import type { Mover, WorldState } from './world';
 
@@ -76,7 +77,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, ws: WorldState, avata
         ctx.fillStyle = 'rgba(20,10,30,0.18)';
         ctx.fillRect(sx + 3, sy + 13, 10, 2);
         ctx.drawImage(list[flap], sx, sy - 2 + bob);
-        if (c.spot >= 0 || c.sp === 151) {
+        if (c.spot >= 0 || c.sp === MYTHICAL_ID) {
           // golden sparkles around legendary / mythical creatures
           for (let k = 0; k < 3; k++) {
             const a = time * 2 + k * 2.1;

@@ -41,6 +41,7 @@ export function SettingsPanel({ settings, onChange, onClose, layer = LAYER.dialo
       <div className="panel dialog settings">
         <p className="dialog-title">Ajustes</p>
         <Menu
+          scroll
           options={options}
           layer={layer}
           active={!keysOpen}

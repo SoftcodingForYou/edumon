@@ -49,6 +49,7 @@ export function KeyBindingsPanel({ keys, onChange, onClose }: Props) {
       <div className="panel dialog keys-panel">
         <p className="dialog-title">Teclas</p>
         <Menu
+          scroll
           options={options}
           layer={LAYER.dialog + 10}
           active={waiting === null}

@@ -7,9 +7,12 @@ import type { Rng } from './rng';
 /** The player's creatures fight one "level" above their wild cousins. */
 export const PLAYER_BONUS = 1;
 
+/** The mythical (#151, the last one to catch) is 5 times as tough as any other wild creature. */
+export const MYTHICAL_TOUGHNESS = 5;
+
 export const maxHp = (pow: number) => 20 + pow * 8;
 export const playerMaxHp = (s: Species) => maxHp(s.pow + PLAYER_BONUS);
-export const wildMaxHp = (s: Species) => maxHp(s.pow);
+export const wildMaxHp = (s: Species) => maxHp(s.pow) * (s.mythical ? MYTHICAL_TOUGHNESS : 1);
 
 export interface Hit {
   damage: number;

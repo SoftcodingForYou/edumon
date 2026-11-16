@@ -42,6 +42,7 @@ export function SlotMenu({ slots, onPlay, onNew, onDelete, onSettings, onBack, a
       <h2 className="screen-title">¿Con qué partida jugamos?</h2>
       <div className="panel slot-panel">
         <Menu
+          scroll
           options={options}
           onSelect={select}
           onBack={onBack}

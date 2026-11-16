@@ -16,12 +16,58 @@ export interface SaveSlot {
   avatar: number;
   seen: number[];
   caught: number[];
+  record: FightRecords; // how often each of the child's Edumón fought, and won
+  allUnlocked: boolean; // secret code typed: everything that needs all 150 caught is open
   created: number;
   updated: number;
 }
 
 /** 'fine': a clear font made for children learning to read; 'pixel': the retro pixel font. */
 export type FontStyle = 'fine' | 'pixel';
+
+/** A creature's battles: how often it was sent out to fight, and how many of those it won. */
+export interface FightRecord {
+  fights: number;
+  wins: number;
+}
+export type FightRecords = Record<number, FightRecord>;
+
+export const NO_FIGHTS: FightRecord = { fights: 0, wins: 0 };
+
+/** Old saves have no record yet; anything odd is dropped (wins can't exceed fights). */
+function validRecords(v: unknown): FightRecords {
+  const out: FightRecords = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const [k, r] of Object.entries(v as Record<string, unknown>)) {
+    const id = Number(k);
+    if (!Number.isInteger(id) || id < 1 || id > TOTAL || !r || typeof r !== 'object') continue;
+    const { fights, wins } = r as Record<string, unknown>;
+    if (!Number.isInteger(fights) || !Number.isInteger(wins) || (fights as number) < 1 || (wins as number) < 0) continue;
+    out[id] = { fights: fights as number, wins: Math.min(wins as number, fights as number) };
+  }
+  return out;
+}
+
+/**
+ * The child's Edumón in the order they are offered for a fight: the ones used most come first
+ * (ties keep the Edudex order). The Edudex itself always stays in Edudex order.
+ */
+export function byUse(ids: number[], record: FightRecords): number[] {
+  const fights = (id: number) => record[id]?.fights ?? 0;
+  return [...ids].sort((a, b) => fights(b) - fights(a) || a - b);
+}
+
+/** A creature was sent out to fight (counted once per battle). */
+export function countFight(record: FightRecords, id: number): FightRecords {
+  const r = record[id] ?? NO_FIGHTS;
+  return { ...record, [id]: { fights: r.fights + 1, wins: r.wins } };
+}
+
+/** A creature knocked out the wild one: a win (its fight was already counted). */
+export function countWin(record: FightRecords, id: number): FightRecords {
+  const r = record[id] ?? NO_FIGHTS;
+  return { ...record, [id]: { fights: Math.max(1, r.fights), wins: r.wins + 1 } };
+}
 
 export interface Settings {
   sound: boolean;
@@ -125,6 +171,8 @@ function sanitize(raw: unknown): SaveSlot | null {
     avatar: Number.isInteger(r.avatar) ? (r.avatar as number) : 0,
     seen,
     caught,
+    record: validRecords(r.record),
+    allUnlocked: r.allUnlocked === true,
     created: typeof r.created === 'number' ? r.created : Date.now(),
     updated: typeof r.updated === 'number' ? r.updated : Date.now(),
   };
@@ -186,6 +234,8 @@ export function createSlot(
     avatar,
     seen: validIds([...(start.seen ?? []), ...caught]),
     caught,
+    record: {},
+    allUnlocked: false,
     created: now,
     updated: now,
   };

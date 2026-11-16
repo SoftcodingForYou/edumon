@@ -21,6 +21,7 @@ export interface Opt {
   label: string;
   icon?: ReactNode;
   sub?: string;
+  after?: ReactNode; // shown after the label (e.g. a type badge)
   disabled?: boolean;
   className?: string;
 }
@@ -36,11 +37,13 @@ interface MenuProps {
   className?: string;
   onFocus?: (i: number) => void;
   closeBtn?: Btn; // another button that closes the menu like B (e.g. the menu key itself)
+  oneLine?: boolean; // each option stays on one line, shrunk to fit (small boxes like in battle)
+  scroll?: boolean; // a long list: show our always-visible scroll bar beside it
   render?: (o: Opt, i: number, selected: boolean) => ReactNode;
 }
 
 /** A list (or grid) of options driven by arrows + A/B, mouse and touch. */
-export function Menu({ options, onSelect, onBack, layer, active = true, initial = 0, columns = 1, className, onFocus, closeBtn, render }: MenuProps) {
+export function Menu({ options, onSelect, onBack, layer, active = true, initial = 0, columns = 1, className, onFocus, closeBtn, oneLine, scroll, render }: MenuProps) {
   const [idx, setIdx] = useState(Math.min(initial, options.length - 1));
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -97,8 +100,12 @@ export function Menu({ options, onSelect, onBack, layer, active = true, initial 
     active,
   );
 
-  return (
-    <div ref={listRef} className={'menu ' + (className ?? '')} style={columns > 1 ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}>
+  const list = (
+    <div
+      ref={listRef}
+      className={'menu ' + (scroll ? 'scrolls ' : '') + (className ?? '')}
+      style={columns > 1 ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
+    >
       {options.map((o, i) => (
         <div
           key={i}
@@ -118,14 +125,89 @@ export function Menu({ options, onSelect, onBack, layer, active = true, initial 
             <>
               <span className="cursor">{i === idx ? '▶' : ''}</span>
               {o.icon && <span className="opt-icon">{o.icon}</span>}
-              <span className="opt-label">
-                {o.label}
-                {o.sub && <small>{o.sub}</small>}
-              </span>
+              {oneLine ? (
+                <FitText className="opt-label left">
+                  {o.label}
+                  {o.sub && <small>{o.sub}</small>}
+                  {o.after}
+                </FitText>
+              ) : (
+                <span className="opt-label">
+                  {o.label}
+                  {o.sub && <small>{o.sub}</small>}
+                  {o.after}
+                </span>
+              )}
             </>
           )}
         </div>
       ))}
+    </div>
+  );
+  if (!scroll) return list;
+  return (
+    <div className="scroll-wrap">
+      {list}
+      <ScrollBar target={listRef} />
+    </div>
+  );
+}
+
+/**
+ * An always-visible scroll bar for a scrolling list. Children don't discover content hidden
+ * below the edge, and iOS hides its own scroll bars, so long lists show this one (only when
+ * they really overflow). It follows the list and can be dragged or tapped.
+ */
+export function ScrollBar({ target, className }: { target: React.RefObject<HTMLElement>; className?: string }) {
+  const [m, setM] = useState({ show: false, top: 0, size: 1 });
+  const track = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = target.current;
+    if (!el) return;
+    const update = () => {
+      const show = el.scrollHeight > el.clientHeight + 2;
+      const size = Math.min(1, el.clientHeight / Math.max(1, el.scrollHeight));
+      const top = el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight);
+      setM((o) => (o.show === show && Math.abs(o.top - top) < 0.002 && Math.abs(o.size - size) < 0.002 ? o : { show, top, size }));
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    ro?.observe(el);
+    for (const c of Array.from(el.children)) ro?.observe(c);
+    void document.fonts?.ready.then(update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      ro?.disconnect();
+    };
+  }, [target]);
+
+  const scrollTo = (clientY: number) => {
+    const el = target.current;
+    const t = track.current;
+    if (!el || !t) return;
+    const r = t.getBoundingClientRect();
+    const thumb = r.height * m.size;
+    const k = Math.max(0, Math.min(1, (clientY - r.top - thumb / 2) / Math.max(1, r.height - thumb)));
+    el.scrollTop = k * (el.scrollHeight - el.clientHeight);
+  };
+
+  if (!m.show) return null;
+  return (
+    <div
+      ref={track}
+      className={'scrollbar ' + (className ?? '')}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        scrollTo(e.clientY);
+      }}
+      onPointerMove={(e) => {
+        if (e.currentTarget.hasPointerCapture?.(e.pointerId)) scrollTo(e.clientY);
+      }}
+    >
+      <div className="scrollbar-thumb" style={{ top: `${m.top * (1 - m.size) * 100}%`, height: `${m.size * 100}%` }} />
     </div>
   );
 }
@@ -302,6 +384,22 @@ export function TypeBadge({ type, small }: { type: Elem; small?: boolean }) {
 
 export function BallIcon({ size = 24, grey = false }: { size?: number; grey?: boolean }) {
   return <img className="pix" src={ballURL(grey)} width={size} height={size} alt={grey ? 'no atrapado' : 'atrapado'} draggable={false} />;
+}
+
+/** A little trophy cup, for the wins. */
+export function CupIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg className="cup" width={size} height={size} viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        fill="#f8c838"
+        stroke="#2a2238"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+        d="M4 2 H12 V6 C12 8.6 10.2 10 8 10 C5.8 10 4 8.6 4 6 Z M7 10 H9 V12 H11 V14.5 H5 V12 H7 Z"
+      />
+      <path fill="none" stroke="#2a2238" strokeWidth="1.2" d="M4 3.5 H2 C2 6 3 7 4.4 7.2 M12 3.5 H14 C14 6 13 7 11.6 7.2" />
+    </svg>
+  );
 }
 
 export function EyeIcon({ size = 24 }: { size?: number }) {

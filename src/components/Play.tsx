@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { loadWorldData, saveWorldData, type SaveSlot, type Settings } from '../game/save';
+import { countFight, countWin, loadWorldData, saveWorldData, type SaveSlot, type Settings } from '../game/save';
 import { TOTAL } from '../game/creatures';
 import type { Elem } from '../game/elements';
 import { getWorldMap } from '../world/maps';
 import {
   zoneOfPlayer,
   createWorld,
+  setUnlockAll,
   finishEncounter,
   restoreWorld,
   snapshotWorld,
@@ -15,7 +16,8 @@ import {
 } from '../world/world';
 import { playMusic } from '../system/audio';
 import { useBindings, useInputSource } from '../system/input';
-import { keyLabel } from '../system/keys';
+import { SECRET_CODE, keyLabel, typedTail } from '../system/keys';
+import { sfx } from '../system/audio';
 import { WorldView } from './WorldView';
 import { Battle } from './Battle';
 import { Dex } from './Dex';
@@ -33,6 +35,7 @@ type Overlay =
   | { k: 'map' }
   | { k: 'transition'; enc: Encounter }
   | { k: 'battle'; enc: Encounter }
+  | { k: 'unlocked'; on: boolean }
   | null;
 
 interface Props {
@@ -57,6 +60,7 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
     const restored = persist ? restoreWorld(map, loadWorldData(slot.id), slot.caught) : null;
     resumed.current = restored !== null;
     worldRef.current = restored ?? createWorld(map, slot.caught);
+    setUnlockAll(worldRef.current, slot.allUnlocked);
   }
   const world = worldRef.current;
 
@@ -93,6 +97,31 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
     };
   }, []);
 
+  // Secret code: typed while the in-game menu (Q) is open, it unlocks everything; typed again it
+  // switches that off, leaving only what was really earned. Nothing listens anywhere else.
+  const typed = useRef({ tail: '', at: 0 });
+  useEffect(() => {
+    if (overlay?.k !== 'menu') return;
+    typed.current.tail = '';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = typed.current;
+      if (performance.now() - t.at > 2500) t.tail = ''; // letters must come in one go
+      t.at = performance.now();
+      t.tail = typedTail(t.tail, e.key);
+      if (t.tail !== SECRET_CODE) return;
+      t.tail = '';
+      const on = !world.unlockAll;
+      setUnlockAll(world, on);
+      updateSlot((s) => ({ ...s, allUnlocked: on }));
+      sfx(on ? 'newdex' : 'back');
+      setOverlay({ k: 'unlocked', on });
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlay, world]);
+
   // Test hook: ?debug exposes the world state in the browser console.
   useEffect(() => {
     if (new URLSearchParams(location.search).has('debug')) (window as unknown as { __edu: unknown }).__edu = { world };
@@ -122,6 +151,8 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
 
   const markSeen = (id: number) =>
     updateSlot((s) => (s.seen.includes(id) ? s : { ...s, seen: [...s.seen, id].sort((a, b) => a - b) }));
+  const recordFight = (id: number) => updateSlot((s) => ({ ...s, record: countFight(s.record, id) }));
+  const recordWin = (id: number) => updateSlot((s) => ({ ...s, record: countWin(s.record, id) }));
   const markCaught = (id: number) =>
     updateSlot((s) => ({
       ...s,
@@ -195,6 +226,33 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
         </div>
       )}
 
+      {overlay?.k === 'unlocked' && (
+        <div className="dialog-backdrop">
+          <div className="panel dialog unlocked">
+            {overlay.on ? (
+              <>
+                <p className="dialog-title">¡Todo desbloqueado!</p>
+                <p>
+                  Ahora el juego hace como si ya tuvieras a los 150 Edumón. ¡El Edumón misterioso pasea por el mundo!
+                  Búscalo en el mapa.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="dialog-title">Desbloqueo apagado</p>
+                <p>Todo vuelve a ser como antes: solo queda lo que has conseguido tú.</p>
+              </>
+            )}
+            <Menu
+              options={[{ label: '¡Genial!' }]}
+              layer={LAYER.dialog}
+              onSelect={() => setOverlay({ k: 'menu' })}
+              onBack={() => setOverlay({ k: 'menu' })}
+            />
+          </div>
+        </div>
+      )}
+
       {overlay?.k === 'welcome' && (
         <div className="overlay-bottom">
           <TextBox text={welcomeText} layer={LAYER.overlay} onDone={() => setOverlay(null)} />
@@ -236,6 +294,8 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
           slot={slot}
           onSeen={markSeen}
           onCaught={markCaught}
+          onFight={recordFight}
+          onWin={recordWin}
           onEnd={(o) => endBattle(overlay.enc, o)}
         />
       )}

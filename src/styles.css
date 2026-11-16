@@ -83,6 +83,52 @@ body {
   flex-shrink: 0;
   transform-origin: center;
 }
+/* Our always-visible scroll bar (see ScrollBar in ui.tsx); the browser's own bar is hidden. */
+.scroll-wrap {
+  position: relative;
+}
+.menu.scrolls,
+.dex-grid {
+  scrollbar-width: none;
+  padding-right: 24px !important;
+}
+.menu.scrolls::-webkit-scrollbar,
+.dex-grid::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  bottom: 4px;
+  width: 16px;
+  background: rgba(255, 253, 244, 0.6);
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  touch-action: none;
+  cursor: pointer;
+}
+.scrollbar-thumb {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  min-height: 24px;
+  background: var(--sel);
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+}
+.scrollbar.dex-scroll {
+  top: 74px;
+  right: 18px;
+  bottom: 50px;
+}
+
+.fit.left {
+  justify-content: flex-start;
+}
+.fit.left .fit-in {
+  transform-origin: left center;
+}
 
 .pix {
   image-rendering: pixelated;
@@ -185,6 +231,12 @@ body {
   margin: 0;
 }
 
+.textbox .tb-ball {
+  position: absolute;
+  right: 44px;
+  bottom: 8px;
+  animation: pulse 0.6s infinite alternate;
+}
 .textbox .next {
   position: absolute;
   right: 16px;
@@ -265,6 +317,15 @@ body {
   margin-top: 8px;
 }
 
+.dialog.unlocked {
+  max-width: 560px;
+  text-align: center;
+}
+.dialog.unlocked p:not(.dialog-title) {
+  margin: 0 0 14px;
+  font-size: calc(28px * var(--fs, 1));
+  line-height: 1.3;
+}
 .dialog-title {
   margin: 0 0 12px;
   font-size: calc(35px * var(--fs, 1));
@@ -826,6 +887,20 @@ body {
   color: #fff;
 }
 
+/* the Edudex page shown when a creature is met for the first time (over the battle) */
+.dex.dex-new {
+  z-index: 60;
+  animation: popIn 0.35s ease-out;
+}
+.dex-new-badge {
+  padding: 2px 12px;
+  font-size: calc(30px * var(--fs, 1));
+  font-weight: 700;
+  color: #fff;
+  background: var(--bad);
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+}
 .dex-header h2 {
   margin: 0;
   font-size: calc(50px * var(--fs, 1));
@@ -983,6 +1058,12 @@ body {
   border-radius: 10px;
 }
 
+.dex-record {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+}
 .dex-status {
   font-weight: 700;
 }
@@ -1298,6 +1379,12 @@ body {
   padding: 8px;
   overflow: hidden;
 }
+.bmenu-opts .opt-label {
+  flex: 1;
+}
+.bmenu-opts .type-badge {
+  margin-left: 8px;
+}
 
 .bmenu-opts .menu {
   gap: 2px;
@@ -1378,6 +1465,21 @@ body {
   gap: 3px;
 }
 
+.pick-record {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 5px 0 3px;
+  font-size: calc(17px * var(--fs, 1));
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff4c0;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
 .pick-tag {
   position: absolute;
   top: 4px;
@@ -1923,12 +2025,10 @@ body {
 
 .tc-list {
   position: absolute;
-  top: 98px;
+  top: 96px;
   left: 14px;
   right: 14px;
-  height: 344px;
-  overflow-y: auto;
-  padding: 4px;
+  padding: 3px 4px;
   background: var(--paper);
   border: 4px solid var(--ink);
   border-radius: 14px;
@@ -1938,10 +2038,15 @@ body {
   display: grid;
   grid-template-columns: 160px 26px 1fr;
   align-items: center;
-  min-height: 42px;
-  padding: 2px 8px;
+  min-height: 32px;
+  padding: 0 8px;
   border-radius: 10px;
   cursor: pointer;
+}
+
+.tc-row .type-badge {
+  margin: 1px 3px;
+  font-size: calc(22px * var(--fs, 1));
 }
 
 .tc-row.sel {
@@ -1956,22 +2061,6 @@ body {
 .tc-good em {
   font-size: calc(22px * var(--fs, 1));
   opacity: 0.6;
-}
-
-.tc-weak {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  top: 452px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 6px;
-  padding: 6px 10px;
-  font-size: calc(22px * var(--fs, 1));
-  background: rgba(255, 253, 244, 0.85);
-  border: 3px solid var(--ink);
-  border-radius: 12px;
 }
 
 .typechart .keyhint,
@@ -2071,6 +2160,28 @@ body {
   width: 20px;
   height: 20px;
   border-radius: 50%;
+}
+.wm-mythical {
+  position: absolute;
+  transform: translate(-50%, -70%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.wm-mythical img {
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 0 6px #fff6a0) drop-shadow(0 0 3px #f8d838);
+  animation: pulse 0.7s infinite alternate;
+}
+.wm-mythical b {
+  padding: 0 6px;
+  font-size: calc(18px * var(--fs, 1));
+  color: var(--ink);
+  background: #f8d838;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
 }
 .wm-legend {
   display: flex;

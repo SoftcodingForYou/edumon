@@ -7,13 +7,15 @@ import {
   AUTOSAVE_STEPS,
   createWorld,
   finishEncounter,
+  mythicalUnlocked,
   restoreWorld,
+  setUnlockAll,
   snapshotWorld,
   speciesForZone,
   updateWorld,
   type WorldState,
 } from '../world/world';
-import { SPECIES } from '../game/creatures';
+import { MYTHICAL_ID, SPECIES } from '../game/creatures';
 import { TYPE_ORDER } from '../game/elements';
 
 const map = getWorldMap('estaciones');
@@ -263,5 +265,106 @@ describe('saving the exact game state', () => {
     expect(snap.creatures.some((c) => c.sp === spot.species)).toBe(true);
     const back = restoreWorld(map, snap, [1, spot.species])!;
     expect(back.creatures.some((c) => c.sp === spot.species)).toBe(false);
+  });
+});
+
+describe('the mythical (#151)', () => {
+  const all150 = Array.from({ length: 150 }, (_, i) => i + 1);
+  const tick = (ws: WorldState, n: number, dir: () => 'up' | 'down' | 'left' | 'right' | null = () => null) => {
+    const met: number[] = [];
+    for (let i = 0; i < n; i++) {
+      ws.grace = 0;
+      const ev = updateWorld(ws, 0.05, { dir: dir(), run: true });
+      if (ev.encounter) {
+        met.push(ev.encounter.sp);
+        finishEncounter(ws, ev.encounter, 'ran');
+      }
+    }
+    return met;
+  };
+  const roamer = (ws: WorldState) => ws.creatures.filter((c) => c.sp === MYTHICAL_ID);
+
+  it('needs all the other 150 caught first', () => {
+    expect(mythicalUnlocked(all150)).toBe(true);
+    expect(mythicalUnlocked(all150.slice(1))).toBe(false);
+    expect(mythicalUnlocked([...all150.slice(0, 149), MYTHICAL_ID])).toBe(false);
+  });
+
+  it('never shows up before that, neither walking around nor in the tall grass', () => {
+    for (const m of [map, santiago]) {
+      const ws = createWorld(m, all150.slice(0, 149), 77); // only #150 is missing
+      const dirs = ['up', 'right', 'down', 'left'] as const;
+      let k = 0;
+      const met = tick(ws, 4000, () => dirs[Math.floor(k++ / 40) % 4]);
+      expect(met.length, m.name).toBeGreaterThan(0);
+      expect(met, m.name).not.toContain(MYTHICAL_ID);
+      expect(roamer(ws), m.name).toHaveLength(0);
+    }
+  });
+
+  it('then roams the whole world for good, crossing zones, until it is caught', () => {
+    for (const m of [map, santiago]) {
+      const ws = createWorld(m, all150, 5);
+      tick(ws, 20);
+      expect(roamer(ws), m.name).toHaveLength(1);
+      const start = { x: roamer(ws)[0].x, y: roamer(ws)[0].y };
+      const zones = new Set<number>();
+      for (let i = 0; i < 60; i++) {
+        tick(ws, 100); // the player stands still, far away: it must not vanish
+        const [c] = roamer(ws);
+        expect(c, m.name).toBeDefined();
+        zones.add(m.zone[c.y * m.w + c.x]);
+      }
+      const [c] = roamer(ws);
+      expect(Math.abs(c.x - start.x) + Math.abs(c.y - start.y), m.name).toBeGreaterThan(10);
+      expect(zones.size, m.name).toBeGreaterThan(1);
+      // other creatures still come and go as usual
+      expect(ws.creatures.filter((x) => x.sp !== MYTHICAL_ID).length, m.name).toBeGreaterThan(3);
+    }
+  });
+
+  it('also roams when the secret code unlocked everything (the Edudex stays as it is)', () => {
+    const ws = createWorld(map, [1, 4], 21);
+    tick(ws, 20);
+    expect(roamer(ws)).toHaveLength(0);
+    setUnlockAll(ws, true);
+    tick(ws, 20);
+    expect(roamer(ws)).toHaveLength(1);
+    expect([...ws.caught]).toEqual([1, 4]);
+    // typed again: switched off, only what was really earned is left
+    setUnlockAll(ws, false);
+    expect(roamer(ws)).toHaveLength(0);
+    tick(ws, 200);
+    expect(roamer(ws)).toHaveLength(0);
+    // a save made while it was on doesn't bring it back once it is off
+    setUnlockAll(ws, true);
+    tick(ws, 20);
+    const back = restoreWorld(map, JSON.parse(JSON.stringify(snapshotWorld(ws))), [1, 4])!;
+    expect(roamer(back)).toHaveLength(1);
+    setUnlockAll(back, false);
+    expect(roamer(back)).toHaveLength(0);
+  });
+
+  it('keeps it when all 150 were really caught, even with the secret unlock switched off', () => {
+    const ws = createWorld(map, all150, 22);
+    setUnlockAll(ws, true);
+    tick(ws, 20);
+    setUnlockAll(ws, false);
+    expect(roamer(ws)).toHaveLength(1);
+  });
+
+  it('runs off somewhere else when it gets away, and is gone once caught', () => {
+    const ws = createWorld(map, all150, 9);
+    tick(ws, 20);
+    const [c] = roamer(ws);
+    finishEncounter(ws, { sp: MYTHICAL_ID, uid: c.uid, spot: -1, biome: 0 }, 'fled');
+    expect(roamer(ws)).toHaveLength(0);
+    tick(ws, 20);
+    const [again] = roamer(ws);
+    expect(again).toBeDefined();
+    expect(Math.abs(again.x - ws.player.x) + Math.abs(again.y - ws.player.y)).toBeGreaterThanOrEqual(25);
+    finishEncounter(ws, { sp: MYTHICAL_ID, uid: again.uid, spot: -1, biome: 0 }, 'caught');
+    tick(ws, 200);
+    expect(roamer(ws)).toHaveLength(0);
   });
 });

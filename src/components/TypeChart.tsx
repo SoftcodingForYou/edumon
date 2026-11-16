@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { TYPE_ORDER, strongAgainst, weakAgainst } from '../game/elements';
+import { TYPE_ORDER, strongAgainst } from '../game/elements';
 import { useInput } from '../system/input';
 import { sfx } from '../system/audio';
 import { LAYER, KeyHint, Bb, DirKeys, TypeBadge } from './ui';
 
-/** "¿Quién gana a quién?": which attack type is very effective against which. */
+/**
+ * "¿Quién gana a quién?": which attack type is very effective against which. All 13 types are
+ * on screen at once (nothing hidden behind scrolling).
+ */
 export function TypeChart({ onClose }: { onClose: () => void }) {
   const [idx, setIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
@@ -28,7 +31,6 @@ export function TypeChart({ onClose }: { onClose: () => void }) {
     }
   }, LAYER.dex);
 
-  const sel = TYPE_ORDER[idx];
   return (
     <div className="typechart">
       <div className="dex-header">
@@ -54,12 +56,6 @@ export function TypeChart({ onClose }: { onClose: () => void }) {
             </div>
           );
         })}
-      </div>
-      <div className="tc-weak">
-        <TypeBadge type={sel} small /> <span>no es muy eficaz contra:</span>
-        {weakAgainst(sel).map((d) => (
-          <TypeBadge key={d} type={d} small />
-        ))}
       </div>
       <KeyHint>
         <DirKeys pair="ud" /> Elegir &nbsp; <Bb /> Volver

@@ -30,6 +30,8 @@ export interface WildCreature extends Mover {
   nextMove: number;
   shy: boolean;
   spot: number; // index into map.spots for legendaries, -1 otherwise
+  path?: number[]; // the mythical's route to its current destination (cell indices)
+  waited?: number; // steps it couldn't take (someone in the way)
 }
 
 export interface Encounter {
@@ -52,6 +54,7 @@ export interface WorldState {
   caught: Set<number>;
   bumpCooldown: number;
   steps: number; // steps walked (the game saves every AUTOSAVE_STEPS steps)
+  unlockAll: boolean; // secret code: behave as if all 150 were caught (the Edudex stays as it is)
 }
 
 export interface WorldInput {
@@ -133,6 +136,7 @@ export function createWorld(map: WorldMap, caught: number[], seed = Date.now()):
     caught: new Set(caught),
     bumpCooldown: 0,
     steps: 0,
+    unlockAll: false,
   };
   for (let k = 0; k < 60 && ws.creatures.length < 10; k++) trySpawn(ws, true);
   return ws;
@@ -141,9 +145,58 @@ export function createWorld(map: WorldMap, caught: number[], seed = Date.now()):
 const occupied = (ws: WorldState, x: number, y: number) => ws.creatures.some((c) => c.x === x && c.y === y);
 
 function pickSpecies(ws: WorldState, zone: number): number | null {
-  const caughtCount = ws.caught.size;
-  if (!ws.caught.has(MYTHICAL_ID) && ws.rng() < 0.004 + 0.02 * (caughtCount / 150)) return MYTHICAL_ID;
   return pickWeighted(ws.rng, speciesForZone(ws.map, zone), (s) => s.rarity)?.id ?? null;
+}
+
+/**
+ * The mythical creature (#151) only appears once all the other 150 have been caught. Then a
+ * single one roams the whole world, anywhere it likes, until it is caught.
+ */
+export function mythicalUnlocked(caught: Iterable<number>): boolean {
+  const have = new Set(caught);
+  for (let id = 1; id <= TOTAL; id++) if (id !== MYTHICAL_ID && !have.has(id)) return false;
+  return true;
+}
+
+/** Cells the mythical can roam to (also used to drop it somewhere new). */
+function roamable(ws: WorldState, i: number): boolean {
+  const t = ws.map.ter[i];
+  return ws.map.reach[i] === 1 && isWalkable(t) && t !== T.STAIRS && t !== T.BRIDGE;
+}
+
+function randomFarCell(ws: WorldState, minDist: number): number | null {
+  const { map, player: p } = ws;
+  for (let k = 0; k < 400; k++) {
+    const i = Math.floor(ws.rng() * map.w * map.h);
+    const x = i % map.w;
+    const y = (i - x) / map.w;
+    if (!roamable(ws, i) || Math.abs(x - p.x) + Math.abs(y - p.y) < minDist || occupied(ws, x, y)) continue;
+    return i;
+  }
+  return null;
+}
+
+/** May the mythical roam right now? (Not caught yet, and unlocked for real or by the secret code.) */
+const mythicalAllowed = (ws: WorldState) => !ws.caught.has(MYTHICAL_ID) && (ws.unlockAll || mythicalUnlocked(ws.caught));
+
+/** Switch the secret unlock on or off; off leaves only what was really earned. */
+export function setUnlockAll(ws: WorldState, on: boolean) {
+  ws.unlockAll = on;
+  ensureMythical(ws);
+}
+
+/** Keep exactly one roaming mythical in the world while it's allowed, and none otherwise. */
+function ensureMythical(ws: WorldState) {
+  if (!mythicalAllowed(ws)) {
+    if (ws.creatures.some((c) => c.sp === MYTHICAL_ID)) ws.creatures = ws.creatures.filter((c) => c.sp !== MYTHICAL_ID);
+    return;
+  }
+  if (ws.creatures.some((c) => c.sp === MYTHICAL_ID)) return;
+  const i = randomFarCell(ws, 25);
+  if (i === null) return;
+  const x = i % ws.map.w;
+  addCreature(ws, MYTHICAL_ID, x, (i - x) / ws.map.w, -1);
+  ws.creatures[ws.creatures.length - 1].shy = false;
 }
 
 function addCreature(ws: WorldState, sp: number, x: number, y: number, spot: number) {
@@ -203,7 +256,7 @@ function despawnFar(ws: WorldState) {
   const p = ws.player;
   ws.creatures = ws.creatures.filter((c) => {
     const d = Math.abs(c.x - p.x) + Math.abs(c.y - p.y);
-    return c.spot >= 0 ? d < 46 : d <= DESPAWN;
+    return c.spot >= 0 ? d < 46 : c.sp === MYTHICAL_ID || d <= DESPAWN;
   });
 }
 
@@ -212,8 +265,11 @@ function creatureCanEnter(ws: WorldState, c: WildCreature, nx: number, ny: numbe
   if (!canStep(map, c.x, c.y, nx, ny)) return false;
   const i = ny * map.w + nx;
   const t = map.ter[i];
-  if (t === T.STAIRS || t === T.BRIDGE) return false;
-  if (c.sp !== MYTHICAL_ID && !zoneInfo(map).allowed.get(c.sp)?.has(map.zone[i])) return false;
+  if (c.sp !== MYTHICAL_ID) {
+    // the mythical goes anywhere; everyone else stays off stairs and bridges, in its own zones
+    if (t === T.STAIRS || t === T.BRIDGE) return false;
+    if (!zoneInfo(map).allowed.get(c.sp)?.has(map.zone[i])) return false;
+  }
   if (p.x === nx && p.y === ny) return false;
   if (p.moving && p.fx === nx && p.fy === ny) return false;
   return !occupied(ws, nx, ny);
@@ -233,6 +289,10 @@ function updateCreatures(ws: WorldState, dt: number) {
     if (c.spot >= 0) continue; // legendaries wait at home
     c.nextMove -= dt;
     if (c.nextMove > 0) continue;
+    if (c.sp === MYTHICAL_ID) {
+      roam(ws, c);
+      continue;
+    }
     const dist = Math.abs(c.x - p.x) + Math.abs(c.y - p.y);
     const distAfter = (d: Dir) => Math.abs(c.x + DIR_VEC[d][0] - p.x) + Math.abs(c.y + DIR_VEC[d][1] - p.y);
     const dirs = [...ALL_DIRS].sort(() => rng() - 0.5);
@@ -261,6 +321,70 @@ function updateCreatures(ws: WorldState, dt: number) {
     }
     c.nextMove = fleeing ? 0.12 + rng() * 0.25 : 0.7 + rng() * 1.6;
   }
+}
+
+/** Shortest walk from one cell to another (any terrain a creature may step on), or null. */
+function findPath(map: WorldMap, from: number, to: number): number[] | null {
+  const N = map.w * map.h;
+  const prev = new Int32Array(N).fill(-1);
+  prev[from] = from;
+  const queue = [from];
+  for (let q = 0; q < queue.length; q++) {
+    const c = queue[q];
+    if (c === to) break;
+    const cx = c % map.w;
+    const cy = (c - cx) / map.w;
+    for (const d of ALL_DIRS) {
+      const nx = cx + DIR_VEC[d][0];
+      const ny = cy + DIR_VEC[d][1];
+      if (!canStep(map, cx, cy, nx, ny)) continue;
+      const n = ny * map.w + nx;
+      if (prev[n] >= 0) continue;
+      prev[n] = c;
+      queue.push(n);
+    }
+  }
+  if (prev[to] < 0) return null;
+  const path: number[] = [];
+  for (let c = to; c !== from; c = prev[c]) path.push(c);
+  return path.reverse();
+}
+
+/** The mythical travels the whole world: it walks to a far-away place, then picks another. */
+function roam(ws: WorldState, c: WildCreature) {
+  const { map, rng } = ws;
+  c.nextMove = 0.45 + rng() * 0.5;
+  if (!c.path?.length) {
+    const here = c.y * map.w + c.x;
+    for (let k = 0; k < 6 && !c.path?.length; k++) {
+      const goal = randomFarCell(ws, 0);
+      const gx = goal === null ? 0 : goal % map.w;
+      const gy = goal === null ? 0 : (goal - gx) / map.w;
+      if (goal === null || Math.abs(gx - c.x) + Math.abs(gy - c.y) < 15) continue;
+      c.path = findPath(map, here, goal) ?? undefined;
+    }
+    c.waited = 0;
+    if (!c.path?.length) return;
+  }
+  const next = c.path[0];
+  const nx = next % map.w;
+  const ny = (next - nx) / map.w;
+  const d = ALL_DIRS.find((dd) => c.x + DIR_VEC[dd][0] === nx && c.y + DIR_VEC[dd][1] === ny);
+  if (!d || !creatureCanEnter(ws, c, nx, ny)) {
+    // someone is in the way: wait a moment, and after a while go somewhere else
+    c.nextMove = 0.3;
+    if ((c.waited = (c.waited ?? 0) + 1) > 6 || !d) c.path = undefined;
+    return;
+  }
+  c.path.shift();
+  c.fx = c.x;
+  c.fy = c.y;
+  c.x = nx;
+  c.y = ny;
+  c.t = 0;
+  c.moving = true;
+  c.dir = d;
+  c.dur = CREATURE_TIME;
 }
 
 function updatePlayer(ws: WorldState, dt: number, input: WorldInput, ev: WorldEvents) {
@@ -325,8 +449,9 @@ export function updateWorld(ws: WorldState, dtRaw: number, input: WorldInput): W
   if (ws.spawnTimer <= 0) {
     ws.spawnTimer = 0.45;
     despawnFar(ws);
-    if (ws.creatures.filter((c) => c.spot < 0).length < MAX_CREATURES) trySpawn(ws, false);
+    if (ws.creatures.filter((c) => c.spot < 0 && c.sp !== MYTHICAL_ID).length < MAX_CREATURES) trySpawn(ws, false);
     spawnSpots(ws);
+    ensureMythical(ws);
   }
   return ev;
 }
@@ -453,5 +578,6 @@ export function restoreWorld(map: WorldMap, data: unknown, caught: number[]): Wo
     caught: caughtSet,
     bumpCooldown: 0,
     steps: Math.max(0, Math.floor(num(d.steps, 0))),
+    unlockAll: false,
   };
 }

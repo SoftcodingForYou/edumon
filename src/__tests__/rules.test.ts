@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { effectiveness } from '../game/elements';
-import { attackDamage, easyCatchChance, easyFleeChance, rollCatch, playerMaxHp, wildMaxHp } from '../game/battle';
-import { getSpecies, SPECIES } from '../game/creatures';
+import { attackDamage, easyCatchChance, easyFleeChance, rollCatch, playerMaxHp, wildMaxHp, maxHp, MYTHICAL_TOUGHNESS } from '../game/battle';
+import { getSpecies, MYTHICAL_ID, SPECIES } from '../game/creatures';
 import { mulberry32 } from '../game/rng';
 
 describe('type chart', () => {
@@ -44,6 +44,14 @@ describe('battles', () => {
     }
     expect(hits).toBeLessThanOrEqual(4);
     expect(playerMaxHp(s)).toBeGreaterThan(wildMaxHp(s));
+  });
+
+  it('makes the mythical five times as tough as any other wild creature', () => {
+    const mythical = getSpecies(MYTHICAL_ID);
+    expect(MYTHICAL_TOUGHNESS).toBe(5);
+    expect(wildMaxHp(mythical)).toBe(5 * maxHp(mythical.pow));
+    const toughestOther = Math.max(...SPECIES.filter((s) => !s.mythical).map(wildMaxHp));
+    expect(wildMaxHp(mythical)).toBeGreaterThanOrEqual(5 * toughestOther);
   });
 });
 

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { avatarURL, ballURL, makeMapCanvas, releaseCanvas } from '../art/assets';
+import { avatarURL, genericURL, makeMapCanvas, releaseCanvas } from '../art/assets';
+import { MYTHICAL_ID } from '../game/creatures';
 import { ELEMS } from '../game/elements';
 import type { WorldMap } from '../world/tiles';
 import { zoneOfPlayer, type WorldState } from '../world/world';
@@ -82,6 +83,9 @@ export function WorldMapView({ world, caught, avatar, onClose }: { world: WorldS
   const p = world.player;
   const here = m.zones[zoneOfPlayer(world)];
   const districts = m.zones.some((z) => z.type);
+  // once all 150 are caught, the mythical roams the world: show where it is right now
+  const mythical = world.creatures.find((c) => c.sp === MYTHICAL_ID);
+  const waiting = m.spots.filter((s) => !caught.includes(s.species));
   return (
     <div className="worldmap">
       <div className="dex-header">
@@ -107,14 +111,17 @@ export function WorldMapView({ world, caught, avatar, onClose }: { world: WorldS
             {a.name}
           </span>
         ))}
-        {m.spots.map((s) =>
-          caught.includes(s.species) ? (
-            <img key={s.species} className="wm-spot pix" src={ballURL()} alt="" style={{ left: px(s.x), top: py(s.y) }} />
-          ) : (
-            <span key={s.species} className="wm-spot wm-star" style={{ left: px(s.x), top: py(s.y) }}>
-              ★
-            </span>
-          ),
+        {/* only legendaries still waiting at home; caught ones simply disappear from the map */}
+        {waiting.map((s) => (
+          <span key={s.species} className="wm-spot wm-star" style={{ left: px(s.x), top: py(s.y) }}>
+            ★
+          </span>
+        ))}
+        {mythical && (
+          <span className="wm-mythical" style={{ left: px(mythical.x), top: py(mythical.y) }}>
+            <img className="pix" src={genericURL(MYTHICAL_ID)} alt="Edumón misterioso" />
+            <b>?</b>
+          </span>
         )}
         <span className="wm-player" style={{ left: px(p.x), top: py(p.y) }}>
           <img className="pix" src={avatarURL(avatar)} alt="Estás aquí" />
@@ -122,12 +129,16 @@ export function WorldMapView({ world, caught, avatar, onClose }: { world: WorldS
         </span>
       </div>
       <div className="wm-legend">
-        <span>
-          <span className="wm-star small">★</span> Vive un legendario
-        </span>
-        <span>
-          <img className="pix" src={ballURL()} alt="" width={20} height={20} /> Ya lo atrapaste
-        </span>
+        {waiting.length > 0 && (
+          <span>
+            <span className="wm-star small">★</span> Vive un legendario
+          </span>
+        )}
+        {mythical && (
+          <span>
+            <img className="pix" src={genericURL(MYTHICAL_ID)} alt="" width={22} height={22} /> Edumón misterioso
+          </span>
+        )}
         {districts && <span>Cada comuna tiene su tipo</span>}
       </div>
       <KeyHint>

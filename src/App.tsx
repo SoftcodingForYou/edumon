@@ -52,6 +52,8 @@ function parseDemo(): Demo | null {
     avatar: Number(q.get('avatar') ?? 0),
     seen,
     caught,
+    record: {},
+    allUnlocked: false,
     created: 0,
     updated: 0,
   };

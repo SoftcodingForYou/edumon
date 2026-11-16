@@ -15,9 +15,26 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
     unlimited) catches it.
   - **Fácil** (for 4-year-olds): no fights, just throw the star ball (unlimited). The catch chance
     goes down with the Edudex number (92% → 18%); after breaking free it may run away (5% → 35%).
-- 151 creatures: #145–150 are legendaries living at fixed spots, #151 is a rare mythical.
+- 151 creatures: #145–150 are legendaries living at fixed spots (the world map stars the ones
+  still waiting; caught ones simply disappear from it). #151 (the mythical, Estrellín)
+  appears only once all other 150 are caught: then exactly one roams the whole world for good
+  (any zone, stairs and bridges; it follows routes to far-away places), is marked on the world map,
+  and is 5× as tough in battle (`MYTHICAL_TOUGHNESS`, health only). If it gets away it reappears
+  somewhere far; once caught it is gone. It never appears in the tall grass. Other creatures spawn
+  as usual either way. In the world it shows the same golden sparkles as the legendaries.
+- Secret code (never shown to players): typing `eduboss` while the in-game menu (Q) is open (and
+  only then) unlocks everything for that save (`SaveSlot.allUnlocked`, `WorldState.unlockAll`): the
+  game behaves as if all 150 were caught (e.g. #151 roams), without adding anything to the Edudex.
+  Typing it again switches it off, leaving only what was really earned.
 - Edudex: names and portraits stay hidden ("???") until met. Star-ball icon = caught,
-  eye icon = only seen.
+  eye icon = only seen. Always in Edudex-number order. Meeting a creature for the first time opens
+  its Edudex page during the battle (Action or Cancel continues). A caught creature's page shows
+  its wins / fights.
+- Fight records (`SaveSlot.record`): a fight counts when the child sends an Edumón out (once per
+  battle); the win goes to the one that knocks out the wild creature. The fighter list is sorted
+  by fights (most used first; never-used ones follow in Edudex order), fixed for the whole battle,
+  and each card shows wins / fights in its corner. After a K.O. the message itself throws the
+  star ball (Action or Cancel), since catching is certain then: no menu.
 - Save slots ("partidas"): each new game gets a name, which must be unique (case-insensitive).
   Everything is stored in the browser's `localStorage` and the chosen slot is always overwritten.
   The Edudex (seen/caught) is saved on every change. The exact game state (player position and
@@ -51,6 +68,7 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   readers; the default) and the retro "Píxel" font, and Ajustes → Mayúsculas shows every text in
   capitals (default off). The goal is to teach reading, especially the creature names, so names
   are never cut off: they shrink to fit (`FitText` in `ui.tsx`).
+- Tipos (type chart): just the list of the 13 types, all on screen without scrolling.
 - Battles: every attack type has its own animation and sound (flames, bubbles, leaves, lightning,
   falling rocks, "¡ZAS!"...); very effective hits shake the screen; a knocked-out creature shows
   dizzy stars ("K.O.").
@@ -95,6 +113,10 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - Every screen/overlay listens with `useInput(handler, LAYER.x)`; the highest layer wins.
 - Never hard-code key names in hints: use `<A />`, `<Bb />`, `<Qq />`, `<Ee />`, `<Tt />`, `<Mm />`, `<DirKeys />`
   (they follow the player's key bindings and input device).
+- Nothing may hide behind scrolling without showing it (children don't discover it): fit content
+  on screen where possible; long lists use `<Menu scroll>` or `<ScrollBar>` (`ui.tsx`), our own
+  always-visible bar (iOS hides native scroll bars). Small boxes like the battle menu keep each
+  option on one line (`<Menu oneLine>`, shrinks to fit) so they never overflow.
 - The stage is 768×576 logical px (world canvas 256×192 drawn at 3×), scaled to fit the window.
 - iOS Safari can wipe canvases when memory runs short (this caused a black world after battles).
   Don't keep big long-lived canvases: the world background is copied each frame from plain
