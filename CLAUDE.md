@@ -16,7 +16,9 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   - **Fácil** (for 4-year-olds): no fights, just throw the star ball (unlimited). The catch chance
     goes down with the Edudex number (92% → 18%); after breaking free it may run away (5% → 35%).
 - 151 creatures: #145–150 are legendaries living at fixed spots (the world map stars the ones
-  still waiting; caught ones simply disappear from it). #151 (the mythical, Estrellín)
+  still waiting; caught ones simply disappear from it). After a battle that isn't a catch, a
+  legendary goes away for a short while (`spotCooldown`, 25 s); meanwhile a wooden sign stands at
+  its home and walking into it says "¡X se fue! Tal vez vuelva pronto." (`signAt`). #151 (the mythical, Estrellín)
   appears only once all other 150 are caught: then exactly one roams the whole world for good
   (any zone, stairs and bridges; it follows routes to far-away places), is marked on the world map,
   and is 5× as tough in battle (`MYTHICAL_TOUGHNESS`, health only). If it gets away it reappears

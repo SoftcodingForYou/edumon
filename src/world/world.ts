@@ -55,6 +55,7 @@ export interface WorldState {
   bumpCooldown: number;
   steps: number; // steps walked (the game saves every AUTOSAVE_STEPS steps)
   unlockAll: boolean; // secret code: behave as if all 150 were caught (the Edudex stays as it is)
+  signWait: number; // seconds before the same sign can be read again (key held against it)
 }
 
 export interface WorldInput {
@@ -67,6 +68,18 @@ export interface WorldEvents {
   bump: boolean;
   rustle: boolean;
   autosave: boolean; // true on every AUTOSAVE_STEPS-th step
+  sign: number | null; // read the sign of a legendary that went away (its species)
+}
+
+/**
+ * While a legendary is away after a battle (its short cooldown), a sign stands at its home:
+ * "¡X se fue! Tal vez vuelva pronto." Returns the species if (x, y) is such a sign.
+ */
+export function signAt(ws: WorldState, x: number, y: number): number | null {
+  const k = ws.map.spots.findIndex((s) => s.x === x && s.y === y);
+  if (k < 0) return null;
+  const s = ws.map.spots[k];
+  return ws.spotCooldown[k] > 0 && !ws.caught.has(s.species) ? s.species : null;
 }
 
 export const AUTOSAVE_STEPS = 5;
@@ -137,6 +150,7 @@ export function createWorld(map: WorldMap, caught: number[], seed = Date.now()):
     bumpCooldown: 0,
     steps: 0,
     unlockAll: false,
+    signWait: 0,
   };
   for (let k = 0; k < 60 && ws.creatures.length < 10; k++) trySpawn(ws, true);
   return ws;
@@ -272,6 +286,7 @@ function creatureCanEnter(ws: WorldState, c: WildCreature, nx: number, ny: numbe
   }
   if (p.x === nx && p.y === ny) return false;
   if (p.moving && p.fx === nx && p.fy === ny) return false;
+  if (signAt(ws, nx, ny) !== null) return false; // a legendary's sign stands there
   return !occupied(ws, nx, ny);
 }
 
@@ -421,6 +436,15 @@ function updatePlayer(ws: WorldState, dt: number, input: WorldInput, ev: WorldEv
     ev.encounter = { sp: c.sp, uid: c.uid, spot: c.spot, biome: map.bio[ny * map.w + nx] };
     return;
   }
+  const away = signAt(ws, nx, ny);
+  if (away !== null) {
+    // the legendary went away for a while: read its sign (the player doesn't move)
+    if (ws.signWait <= 0) {
+      ev.sign = away;
+      ws.signWait = 0.8;
+    }
+    return;
+  }
   if (canStep(map, p.x, p.y, nx, ny)) {
     p.fx = p.x;
     p.fy = p.y;
@@ -437,8 +461,9 @@ function updatePlayer(ws: WorldState, dt: number, input: WorldInput, ev: WorldEv
 
 export function updateWorld(ws: WorldState, dtRaw: number, input: WorldInput): WorldEvents {
   const dt = Math.min(dtRaw, 0.05);
-  const ev: WorldEvents = { encounter: null, bump: false, rustle: false, autosave: false };
+  const ev: WorldEvents = { encounter: null, bump: false, rustle: false, autosave: false, sign: null };
   ws.time += dt;
+  ws.signWait = Math.max(0, ws.signWait - dt);
   ws.grace = Math.max(0, ws.grace - dt);
   ws.bumpCooldown -= dt;
   for (let k = 0; k < ws.spotCooldown.length; k++) ws.spotCooldown[k] = Math.max(0, ws.spotCooldown[k] - dt);
@@ -579,5 +604,6 @@ export function restoreWorld(map: WorldMap, data: unknown, caught: number[]): Wo
     bumpCooldown: 0,
     steps: Math.max(0, Math.floor(num(d.steps, 0))),
     unlockAll: false,
+    signWait: 0,
   };
 }

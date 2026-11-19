@@ -1,11 +1,11 @@
 // Draws the world (map, wild Edumon and the player) onto a small canvas.
 
-import { getGrassFront, getMapPixels, getOwFrames, getPlayerFrames } from '../art/assets';
+import { getGrassFront, getMapPixels, getOwFrames, getPlayerFrames, getSign } from '../art/assets';
 import { hash2 } from '../game/rng';
 import { T } from './tiles';
 import { MYTHICAL_ID } from '../game/creatures';
 import { TILE } from './tileArt';
-import type { Mover, WorldState } from './world';
+import { signAt, type Mover, type WorldState } from './world';
 
 export const VIEW_W = 256;
 export const VIEW_H = 192;
@@ -93,6 +93,14 @@ export function renderWorld(ctx: CanvasRenderingContext2D, ws: WorldState, avata
         if (map.ter[gy * map.w + gx] === T.TALL) ctx.drawImage(grass, gx * TILE - camX, gy * TILE - camY);
       },
     });
+  }
+
+  // a sign at the home of each legendary that went away for a while
+  for (const s of map.spots) {
+    const x = s.x * TILE;
+    const y = s.y * TILE;
+    if (!inView(x, y) || signAt(ws, s.x, s.y) === null) continue;
+    ents.push({ y, draw: () => ctx.drawImage(getSign(), x - camX, y - camY) });
   }
 
   const p = ws.player;

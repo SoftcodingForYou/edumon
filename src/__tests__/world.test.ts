@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { generateEstaciones } from '../world/mapgen';
 import { generateSantiago } from '../world/santiago';
 import { getWorldMap } from '../world/maps';
-import { B, T, BIOME_HABITAT, MAP_IDS, isWalkable, type WorldMap } from '../world/tiles';
+import { B, T, BIOME_HABITAT, MAP_IDS, canStep, isWalkable, type WorldMap } from '../world/tiles';
 import {
   AUTOSAVE_STEPS,
   createWorld,
   finishEncounter,
   mythicalUnlocked,
   restoreWorld,
+  signAt,
   setUnlockAll,
   snapshotWorld,
   speciesForZone,
@@ -366,5 +367,37 @@ describe('the mythical (#151)', () => {
     finishEncounter(ws, { sp: MYTHICAL_ID, uid: again.uid, spot: -1, biome: 0 }, 'caught');
     tick(ws, 200);
     expect(roamer(ws)).toHaveLength(0);
+  });
+});
+
+describe('a legendary that went away', () => {
+  it('leaves a sign at home ("se fue, tal vez vuelva pronto") until it comes back', () => {
+    const spot = map.spots[0];
+    for (const [dir, dx, dy] of [['up', 0, 1], ['down', 0, -1], ['left', 1, 0], ['right', -1, 0]] as const) {
+      const x = spot.x + dx;
+      const y = spot.y + dy;
+      if (!map.reach[y * map.w + x] || !canStep(map, x, y, spot.x, spot.y)) continue;
+      const ws = createWorld(map, [1], 51);
+      ws.creatures = [];
+      Object.assign(ws.player, { x, y, fx: x, fy: y, moving: false, t: 1 });
+      for (let k = 0; k < 20; k++) updateWorld(ws, 0.05, { dir: null, run: false });
+      const walk = () => updateWorld(ws, 0.01, { dir, run: false });
+      const ev = walk();
+      expect(ev.encounter?.sp).toBe(spot.species);
+      finishEncounter(ws, ev.encounter!, 'ran');
+      expect(signAt(ws, spot.x, spot.y)).toBe(spot.species);
+      // walking into the sign reads it, once per push against it; the player stays put
+      const read = walk();
+      expect(read.sign).toBe(spot.species);
+      expect(read.encounter).toBeNull();
+      expect(walk().sign).toBeNull();
+      expect([ws.player.x, ws.player.y]).toEqual([x, y]);
+      // a while later the legendary is back home (no sign) and can be met again
+      for (let k = 0; k < 700; k++) updateWorld(ws, 0.05, { dir: null, run: false });
+      expect(signAt(ws, spot.x, spot.y)).toBeNull();
+      expect(walk().encounter?.sp).toBe(spot.species);
+      return;
+    }
+    throw new Error('no free side next to the legendary');
   });
 });

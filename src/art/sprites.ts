@@ -1,7 +1,7 @@
 // Small hand-drawn sprites: generic overworld creatures, the player and the star ball.
 
 import { fromStrings, flipH, mirrorRows } from './pixel';
-import { darken, lighten, mix, type PixelImage } from './raster';
+import { darken, hexToRgb, lighten, mix, type PixelImage } from './raster';
 import type { OwKind } from '../game/creatures';
 
 // ------------------------------------------------------ generic overworld creatures
@@ -310,3 +310,34 @@ export function ballSprite(grey = false): PixelImage {
 }
 
 export const lightBody = (c: string) => lighten(c, 0.5);
+
+// ------------------------------------------------------------------ sign
+
+/** A little wooden sign, standing at a legendary's home while it is away. */
+export function signSprite(): PixelImage {
+  const W = 16;
+  const H = 16;
+  const img: PixelImage = { w: W, h: H, data: new Uint8ClampedArray(W * H * 4) };
+  const put = (x: number, y: number, hex: string) => {
+    const [r, g, b] = hexToRgb(hex);
+    img.data.set([r, g, b, 255], (y * W + x) * 4);
+  };
+  // post with a little shadow
+  for (let x = 5; x <= 10; x++) put(x, 15, '#4a6a30');
+  for (let y = 9; y <= 14; y++) {
+    put(7, y, '#a8784a');
+    put(8, y, '#6a4224');
+  }
+  // board
+  for (let y = 2; y <= 9; y++) {
+    for (let x = 1; x <= 14; x++) {
+      const edge = x === 1 || x === 14 || y === 2 || y === 9;
+      put(x, y, edge ? '#3a2414' : y === 3 ? '#f0cc96' : '#deb07a');
+    }
+  }
+  // "writing" on the board
+  for (let x = 3; x <= 12; x++) put(x, 5, '#6a4224');
+  for (let x = 3; x <= 9; x++) put(x, 7, '#6a4224');
+  put(11, 7, '#6a4224');
+  return img;
+}

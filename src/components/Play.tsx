@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { countFight, countWin, loadWorldData, saveWorldData, type SaveSlot, type Settings } from '../game/save';
-import { TOTAL } from '../game/creatures';
+import { TOTAL, getSpecies } from '../game/creatures';
 import type { Elem } from '../game/elements';
 import { getWorldMap } from '../world/maps';
 import {
@@ -36,6 +36,7 @@ type Overlay =
   | { k: 'transition'; enc: Encounter }
   | { k: 'battle'; enc: Encounter }
   | { k: 'unlocked'; on: boolean }
+  | { k: 'sign'; sp: number }
   | null;
 
 interface Props {
@@ -192,6 +193,7 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
         avatar={slot.avatar}
         paused={overlay !== null}
         onEncounter={(enc) => setOverlay({ k: 'transition', enc })}
+        onSign={(sp) => setOverlay({ k: 'sign', sp })}
         onMenu={() => setOverlay({ k: 'menu' })}
         onDex={() => setOverlay({ k: 'dex' })}
         onTypes={() => setOverlay({ k: 'types' })}
@@ -250,6 +252,12 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
               onBack={() => setOverlay({ k: 'menu' })}
             />
           </div>
+        </div>
+      )}
+
+      {overlay?.k === 'sign' && (
+        <div className="overlay-bottom">
+          <TextBox text={`¡${getSpecies(overlay.sp).name} se fue! Tal vez vuelva pronto.`} layer={LAYER.overlay} onDone={() => setOverlay(null)} />
         </div>
       )}
 

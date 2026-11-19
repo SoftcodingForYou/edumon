@@ -7,7 +7,7 @@
 
 import { drawCreature } from './creatureArt';
 import type { PixelImage } from './raster';
-import { overworldFrames, playerFrames, AVATARS, ballSprite, type Dir } from './sprites';
+import { overworldFrames, playerFrames, AVATARS, ballSprite, signSprite, type Dir } from './sprites';
 import { flipH } from './pixel';
 import { getSpecies } from '../game/creatures';
 import { getWorldMap } from '../world/maps';
@@ -82,6 +82,14 @@ export function refreshWorldArt() {
   grass = null;
   playerCache.clear();
   owCache.clear();
+  sign = null;
+}
+
+let sign: HTMLCanvasElement | null = null;
+/** The sign standing at a legendary's home while it is away. */
+export function getSign(): HTMLCanvasElement {
+  if (!sign) sign = toCanvas(signSprite());
+  return sign;
 }
 
 let grass: HTMLCanvasElement | null = null;
