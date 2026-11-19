@@ -43,6 +43,11 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   direction, wild creatures, legendary cooldowns, random generator, step counter) is saved every
   5th step, after every battle and when the game is left, hidden or closed. Loading a slot resumes
   exactly there; a brand-new game starts on a random road.
+  A game can be exported to a `.edumon` file (JSON: Edudex, records, unlock flag and the world
+  snapshot; `exportGame`) via "Guardar en un archivo" in its dialog, and imported via "Cargar de un
+  archivo" in the game list (`parseExport` → `importGame`): the player always types a new unique name
+  (never the file name or the stored one) and it becomes an ordinary new slot; the file isn't needed
+  afterwards. File dialogs live in `system/files.ts`.
 - Two worlds; the map is chosen once when creating a game and stored on the slot (`SaveSlot.map`):
   - **Estaciones** (the original world): roads, grass, tall grass (random encounters), mountains
     with stairs and a snowy peak, beaches (water creatures; no swimming), two volcanoes, lake with
@@ -107,7 +112,7 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   encounters), `renderer.ts` (canvas drawing).
 - `system/` – `keys.ts` (buttons, default keys, key → button, labels, rebinding), `input.ts` (layered
   input handlers, key capture, keyboard/touch/gamepad source), `audio.ts` (Web Audio SFX, per-type
-  attack sounds, original chiptunes).
+  attack sounds, original chiptunes), `files.ts` (save-to-folder / pick-a-file dialogs).
 - `components/` – React screens: TitleScreen, SlotMenu, NewGame, Play (saving/resuming, HUD),
   WorldView, Battle, AttackFx (signature attack effects + KO stars; shapes in `fxParticles.tsx`),
   AttackShowcase (`?demo=attacks`, seekable for recording), CreaturePicker, Dex, TypeChart,

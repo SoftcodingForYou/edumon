@@ -90,7 +90,7 @@ const COLS = 9;
 const DELETE = 'BORRAR';
 const DONE = 'LISTO';
 
-function NameEntry({ initial, slots, onCancel, onDone }: { initial: string; slots: SaveSlot[]; onCancel: () => void; onDone: (name: string) => void }) {
+export function NameEntry({ initial, slots, onCancel, onDone }: { initial: string; slots: SaveSlot[]; onCancel: () => void; onDone: (name: string) => void }) {
   const [text, setText] = useState(initial);
   const [row, setRow] = useState(0);
   const [col, setCol] = useState(0);

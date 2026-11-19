@@ -213,6 +213,8 @@ export function nameTaken(name: string, slots: SaveSlot[]): boolean {
   return slots.some((s) => sameName(s.name, name));
 }
 
+const newSlotId = (now: number) => `p${now.toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
+
 export function createSlot(
   name: string,
   mode: Mode,
@@ -227,7 +229,7 @@ export function createSlot(
   const now = Date.now();
   const caught = validIds(start.caught ?? []);
   const slot: SaveSlot = {
-    id: `p${now.toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`,
+    id: newSlotId(now),
     name: clean,
     mode,
     map,
@@ -254,6 +256,90 @@ export function saveSlot(slot: SaveSlot): SaveSlot {
 export function deleteSlot(id: string) {
   writeSlots(loadSlots().filter((s) => s.id !== id));
   kv().removeItem(WORLD_KEY + id);
+}
+
+// ------------------------------------------------------------ files (move a game elsewhere)
+
+/** Marks a file as an exported Edumón game. */
+export const EXPORT_FORMAT = 'edumon-partida';
+/** File extension of exported games (the content is JSON). */
+export const EXPORT_EXT = 'edumon';
+
+/** Everything an exported game carries, except its name (the player picks a new one on import). */
+export interface ImportedGame {
+  mode: Mode;
+  map: MapId;
+  avatar: number;
+  seen: number[];
+  caught: number[];
+  record: FightRecords;
+  allUnlocked: boolean;
+  world: unknown; // the exact world state (checked again when the game is loaded)
+}
+
+/** A game as a file's text: the Edudex, fight records, settings of the game and the world state. */
+export function exportGame(slot: SaveSlot): string {
+  return JSON.stringify({
+    format: EXPORT_FORMAT,
+    version: 1,
+    exported: new Date().toISOString(),
+    name: slot.name, // just for people looking at the file: importing asks for a new name
+    game: {
+      mode: slot.mode,
+      map: slot.map,
+      avatar: slot.avatar,
+      seen: slot.seen,
+      caught: slot.caught,
+      record: slot.record,
+      allUnlocked: slot.allUnlocked,
+    },
+    world: loadWorldData(slot.id),
+  });
+}
+
+/** A suggested file name for an exported game, e.g. "edumon-ana-2026-11-19.edumon". */
+export function exportFileName(slot: SaveSlot, d = new Date()): string {
+  const ascii = slot.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return `edumon-${ascii || 'partida'}-${day}.${EXPORT_EXT}`;
+}
+
+/** Read an exported game (null if the text isn't one). Everything is checked like a stored slot. */
+export function parseExport(text: string): ImportedGame | null {
+  try {
+    const d = JSON.parse(text) as Record<string, unknown>;
+    if (!d || d.format !== EXPORT_FORMAT || !d.game || typeof d.game !== 'object') return null;
+    const s = sanitize({ ...(d.game as object), id: 'import', name: 'import' });
+    if (!s) return null;
+    return { mode: s.mode, map: s.map, avatar: s.avatar, seen: s.seen, caught: s.caught, record: s.record, allUnlocked: s.allUnlocked, world: d.world ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/** Create a new game from an imported file, under the name the player chose. */
+export function importGame(name: string, g: ImportedGame): SaveSlot {
+  const clean = cleanName(name);
+  if (!clean) throw new Error('El nombre está vacío');
+  const slots = loadSlots();
+  if (nameTaken(clean, slots)) throw new Error('Ese nombre ya existe');
+  const now = Date.now();
+  const slot: SaveSlot = {
+    id: newSlotId(now),
+    name: clean,
+    mode: g.mode,
+    map: g.map,
+    avatar: g.avatar,
+    seen: [...g.seen],
+    caught: [...g.caught],
+    record: { ...g.record },
+    allUnlocked: g.allUnlocked,
+    created: now,
+    updated: now,
+  };
+  writeSlots([slot, ...slots]);
+  if (g.world) saveWorldData(slot.id, g.world);
+  return slot;
 }
 
 /** Store the exact world state of a slot (see snapshotWorld in world.ts). */

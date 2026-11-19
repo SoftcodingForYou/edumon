@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  exportFileName,
+  exportGame,
+  importGame,
+  parseExport,
   byUse,
   countFight,
   countWin,
@@ -100,6 +104,33 @@ describe('save slots', () => {
     expect(s.allUnlocked).toBe(false);
     saveSlot({ ...s, allUnlocked: true });
     expect(loadSlots().find((x) => x.name === 'Kai')?.allUnlocked).toBe(true);
+  });
+
+  it('exports a game to a file and imports it as a new game with a new name', () => {
+    const ana = saveSlot({ ...createSlot('Ana', 'easy', 2, { caught: [1, 4], seen: [1, 4, 7] }, 'santiago'), record: { 4: { fights: 3, wins: 2 } }, allUnlocked: true });
+    saveWorldData(ana.id, { v: 1, map: 'santiago', player: { x: 5, y: 6, dir: 'up' } });
+    expect(exportFileName(ana, new Date(2026, 10, 19))).toBe('edumon-ana-2026-11-19.edumon');
+    const text = exportGame(ana);
+
+    const game = parseExport(text)!;
+    expect(game).toMatchObject({ mode: 'easy', map: 'santiago', avatar: 2, caught: [1, 4], seen: [1, 4, 7], allUnlocked: true });
+    // the name inside the file is not used: the player picks one, unique as always
+    expect(() => importGame('ANA', game)).toThrow();
+    const copy = importGame('Ana 2', game);
+    expect(copy.id).not.toBe(ana.id);
+    expect(loadSlots().map((x) => x.name).sort()).toEqual(['Ana', 'Ana 2']);
+    expect(loadSlots().find((x) => x.name === 'Ana 2')).toMatchObject({ caught: [1, 4], record: { 4: { fights: 3, wins: 2 } }, map: 'santiago' });
+    expect(loadWorldData(copy.id)).toEqual(loadWorldData(ana.id));
+    // the copy is its own game: changing it leaves the original alone
+    saveSlot({ ...copy, caught: [1, 4, 7] });
+    expect(loadSlots().find((x) => x.name === 'Ana')?.caught).toEqual([1, 4]);
+  });
+
+  it('refuses files that are not Edumón games, and cleans odd values', () => {
+    expect(parseExport('hola')).toBeNull();
+    expect(parseExport(JSON.stringify({ format: 'otra-cosa', game: {} }))).toBeNull();
+    const odd = parseExport(JSON.stringify({ format: 'edumon-partida', game: { mode: 'raro', caught: [3, 999, -1], seen: 'x' } }))!;
+    expect(odd).toMatchObject({ mode: 'normal', map: 'estaciones', caught: [3], seen: [3], allUnlocked: false, world: null });
   });
 
   it('remembers the map of each game', () => {

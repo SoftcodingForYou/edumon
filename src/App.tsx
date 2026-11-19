@@ -7,6 +7,8 @@ import {
   saveSettings,
   saveSlot,
   storageIsPersistent,
+  importGame,
+  type ImportedGame,
   type SaveSlot,
   type Settings,
 } from './game/save';
@@ -16,13 +18,13 @@ import { playMusic, setMusicEnabled, setSoundEnabled } from './system/audio';
 import { setBindings } from './system/input';
 import { TitleScreen } from './components/TitleScreen';
 import { SlotMenu } from './components/SlotMenu';
-import { NewGame, type NewGameResult } from './components/NewGame';
+import { NameEntry, NewGame, type NewGameResult } from './components/NewGame';
 import { Play } from './components/Play';
 import { SettingsPanel } from './components/SettingsPanel';
 import { TouchControls } from './components/TouchControls';
 import { AttackShowcase } from './components/AttackShowcase';
 
-type Screen = { k: 'title' } | { k: 'slots' } | { k: 'new' } | { k: 'play'; slotId: string };
+type Screen = { k: 'title' } | { k: 'slots' } | { k: 'new' } | { k: 'import'; game: ImportedGame } | { k: 'play'; slotId: string };
 
 interface Demo {
   slot: SaveSlot;
@@ -111,7 +113,7 @@ export function App() {
   }, [settings.keys]);
 
   useEffect(() => {
-    if (screen.k === 'slots' || screen.k === 'new') playMusic('title');
+    if (screen.k === 'slots' || screen.k === 'new' || screen.k === 'import') playMusic('title');
   }, [screen.k]);
 
   const changeSettings = (s: Settings) => {
@@ -146,6 +148,20 @@ export function App() {
     }
   };
 
+  const importFromFile = (name: string, game: ImportedGame) => {
+    try {
+      const slot = importGame(name, game);
+      const list = loadSlots();
+      slotsRef.current = list;
+      setSlots(list);
+      setScreen({ k: 'play', slotId: slot.id });
+    } catch (err) {
+      console.error(err);
+      setSlots(loadSlots());
+      setScreen({ k: 'slots' });
+    }
+  };
+
   const playing = screen.k === 'play' ? slots.find((s) => s.id === screen.slotId) : undefined;
 
   return (
@@ -165,6 +181,7 @@ export function App() {
               active={!showSettings}
               onBack={() => setScreen({ k: 'title' })}
               onNew={() => setScreen({ k: 'new' })}
+              onImport={(game) => setScreen({ k: 'import', game })}
               onPlay={(id) => setScreen({ k: 'play', slotId: id })}
               onDelete={(id) => {
                 deleteSlot(id);
@@ -179,6 +196,10 @@ export function App() {
           </>
         )}
         {screen.k === 'new' && <NewGame slots={slots} onCancel={() => setScreen({ k: 'slots' })} onCreate={create} />}
+        {screen.k === 'import' && (
+          // a game from a file gets a new name of the player's choice (not the one inside the file)
+          <NameEntry initial="" slots={slots} onCancel={() => setScreen({ k: 'slots' })} onDone={(name) => importFromFile(name, screen.game)} />
+        )}
         {screen.k === 'play' && playing && (
           <Play
             key={playing.id}
