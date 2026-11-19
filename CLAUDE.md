@@ -31,7 +31,8 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
 - Edudex: names and portraits stay hidden ("???") until met. Star-ball icon = caught,
   eye icon = only seen. Always in Edudex-number order. Catching a creature for the first time
   shows its new Edudex page right after "¡X se ha guardado en tu Edudex!" (Action or Cancel goes
-  back to the world). A caught creature's page shows its wins / fights.
+  back to the world; with reading aloud on, only after the name was read). A caught creature's
+  page shows its wins / fights.
 - Fight records (`SaveSlot.record`): a fight counts when the child sends an Edumón out (once per
   battle); the win goes to the one that knocks out the wild creature. The fighter list is sorted
   by fights (most used first; never-used ones follow in Edudex order), fixed for the whole battle,
@@ -76,6 +77,28 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   readers; the default) and the retro "Píxel" font, and Ajustes → Mayúsculas shows every text in
   capitals (default off). The goal is to teach reading, especially the creature names, so names
   are never cut off: they shrink to fit (`FitText` in `ui.tsx`).
+- Reading names out loud (Ajustes → "Leer en voz alta", `Settings.reading`, **on by default**;
+  switching it back on shows a confirmation for grown-ups): every known (seen or caught) creature's
+  Edudex page (also the new one after a first catch) has a "🎤 Leer" button. Until the name was read once it is
+  selected (Action reads); afterwards Action does the usual and the button is chosen with up/down
+  or tapped. On the new page after a catch the reading is a one-time pass (asked every time, even
+  for a name already read while only seen): the page can't be left before it (until the ✕ shows),
+  and afterwards the button is gone; reading again happens later in the Edudex. The browser's speech recognition
+  (`system/listen.ts`; Chrome/Edge on-device when its Spanish pack is there, else Google's/Microsoft's
+  service; Safari: Apple's; Firefox: none) listens in `es-CL` while music and sounds are muted. It
+  keeps listening across pauses (children read syllable by syllable; pieces are joined) and stops
+  2.2 s after the child stops talking (9 s at most). `heardName` (`game/reading.ts`) compares by
+  sound and forgivingly (v/b, z/s, ll/y, accents, half cost for e/i, o/u, r/l, n/m, d/t, b/p, k/g,
+  words run together, real-word completions like "Trinidad" for Trinín) but never accepts a guess
+  closer to another Edumón's name. What was heard is logged to the console (`[Edumón] Leer`) and,
+  with `?debug`, shown on the syllables screen. Read → stars and
+  "¡Muy bien!", saved in `SaveSlot.read` (a star on the page, in the grid and a count in the header).
+  Not understood → only the name in coloured syllables (`syllables`) and "Otra vez". A ✕ in the
+  overlay's top-right corner (or B) gives up without a star: when practising in the Edudex it is
+  always there; on the new page after a catch only after 5 misses (`TRIES_BEFORE_SKIP`). Only when
+  nothing can listen (no recognition, no microphone permission, microphone broken) a grown-up
+  confirms with "✓ Lo leyó bien" (with a short note why). Child-facing texts here stay a word or
+  two: the children are just learning to read.
 - Tipos (type chart): just the list of the 13 types, all on screen without scrolling.
 - Battles: every one of the 151 attacks has its own signature animation and sound
   (`game/attacks.ts` recipe → `components/AttackFx.tsx`): a motion (arc, stream, beam, whirlwind,
@@ -94,14 +117,14 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   sound) into `preview/edumon-ataques.mp4` (git-ignored). Needs Firefox 129+ and ffmpeg; options
   `FROM`/`TO`, `WORKERS`, `FPS`, `OUT`, `FIREFOX` (see `scripts/record-attacks.mjs`).
 - Test URLs (throwaway save, nothing stored): `?demo=world|battle|dex|types|map|slots|new|attacks` with
-  optional `&sp=25&mode=easy&biome=4&caught=12&team=1,4,7&font=pixel&upper=1&map=santiago`
+  optional `&sp=25&mode=easy&biome=4&caught=12&team=1,4,7&font=pixel&upper=1&reading=0&map=santiago`
   (`biome=7` is the city battle background). `?debug` exposes the world state as `window.__edu.world`.
 
 ## Architecture (src/)
 
 - `game/` – `creatures.ts` (roster as evolution families; numbers are assigned in list order),
   `elements.ts` (types + type chart), `battle.ts` (damage and catch math), `save.ts` (slots and
-  settings), `rng.ts`.
+  settings), `reading.ts` (does what was heard sound like the name? + syllables), `rng.ts`.
 - `art/` – `raster.ts` (shape rasterizer with automatic outline/shading), `creatureArt.ts`
   (14 archetypes → 56×56 portraits), `sprites.ts` (hand-drawn 16×16 player, generic creatures,
   star ball), `assets.ts` (browser image caches).
@@ -112,10 +135,12 @@ classic Game Boy monster-collecting games. All creatures, names, art, sounds and
   encounters), `renderer.ts` (canvas drawing).
 - `system/` – `keys.ts` (buttons, default keys, key → button, labels, rebinding), `input.ts` (layered
   input handlers, key capture, keyboard/touch/gamepad source), `audio.ts` (Web Audio SFX, per-type
-  attack sounds, original chiptunes), `files.ts` (save-to-folder / pick-a-file dialogs).
+  attack sounds, original chiptunes), `files.ts` (save-to-folder / pick-a-file dialogs), `listen.ts`
+  (speech recognition for reading names out loud).
 - `components/` – React screens: TitleScreen, SlotMenu, NewGame, Play (saving/resuming, HUD),
   WorldView, Battle, AttackFx (signature attack effects + KO stars; shapes in `fxParticles.tsx`),
-  AttackShowcase (`?demo=attacks`, seekable for recording), CreaturePicker, Dex, TypeChart,
+  AttackShowcase (`?demo=attacks`, seekable for recording), CreaturePicker, Dex, ReadAloud
+  (reading a name out loud), TypeChart,
   WorldMapView, SettingsPanel, KeyBindingsPanel, TouchControls, shared `ui.tsx` (Menu, TextBox,
   KeyCap hints, type badges with icons).
 

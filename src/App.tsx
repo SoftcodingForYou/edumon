@@ -33,7 +33,7 @@ interface Demo {
   look: Partial<Settings>; // letter style to try out (never saved)
 }
 
-/** Test/preview hook, e.g. ?demo=battle&sp=25&mode=easy&team=1,4,7&font=pixel&upper=1 (never saved). */
+/** Test/preview hook, e.g. ?demo=battle&sp=25&mode=easy&team=1,4,7&font=pixel&upper=1&reading=1 (never saved). */
 function parseDemo(): Demo | null {
   if (typeof location === 'undefined') return null;
   const q = new URLSearchParams(location.search);
@@ -56,6 +56,7 @@ function parseDemo(): Demo | null {
     seen,
     caught,
     record: {},
+    read: caught.filter((_, i) => i % 4 === 1), // a few already read aloud
     allUnlocked: false,
     created: 0,
     updated: 0,
@@ -65,6 +66,7 @@ function parseDemo(): Demo | null {
   const look: Partial<Settings> = {};
   if (q.get('font') === 'pixel' || q.get('font') === 'fine') look.font = q.get('font') as Settings['font'];
   if (q.has('upper')) look.upper = q.get('upper') !== '0';
+  if (q.has('reading')) look.reading = q.get('reading') !== '0';
   return { slot, screen, enc, look };
 }
 

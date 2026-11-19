@@ -161,6 +161,9 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
       caught: s.caught.includes(id) ? s.caught : [...s.caught, id].sort((a, b) => a - b),
     }));
 
+  const markRead = (id: number) =>
+    updateSlot((s) => (s.read.includes(id) || !s.seen.includes(id) ? s : { ...s, read: [...s.read, id].sort((a, b) => a - b) }));
+
   const endBattle = (enc: Encounter, outcome: Outcome) => {
     finishEncounter(world, enc, outcome);
     saveWorld.current();
@@ -290,7 +293,7 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
         </div>
       )}
 
-      {overlay?.k === 'dex' && <Dex slot={slot} onClose={() => setOverlay(null)} />}
+      {overlay?.k === 'dex' && <Dex slot={slot} reading={settings.reading} onRead={markRead} onClose={() => setOverlay(null)} />}
       {overlay?.k === 'types' && <TypeChart onClose={() => setOverlay(null)} />}
       {overlay?.k === 'map' && <WorldMapView world={world} caught={slot.caught} avatar={slot.avatar} onClose={() => setOverlay(null)} />}
       {overlay?.k === 'settings' && <SettingsPanel settings={settings} onChange={onSettings} onClose={() => setOverlay({ k: 'menu' })} />}
@@ -304,6 +307,8 @@ export function Play({ slot, updateSlot, settings, onSettings, onExit, persist, 
           onCaught={markCaught}
           onFight={recordFight}
           onWin={recordWin}
+          reading={settings.reading}
+          onRead={markRead}
           onEnd={(o) => endBattle(overlay.enc, o)}
         />
       )}

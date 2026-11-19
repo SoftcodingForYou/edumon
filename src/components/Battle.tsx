@@ -30,11 +30,13 @@ interface Props {
   onFight: (id: number) => void; // one of the child's Edumón was sent out to fight
   onWin: (id: number) => void; // ...and knocked out the wild one
   onEnd: (o: Outcome) => void;
+  reading?: boolean; // names can be read out loud on the new Edudex page
+  onRead?: (id: number) => void;
 }
 
 const pickOne = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 
-export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: Props) {
+export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd, reading = false, onRead }: Props) {
   const wild = getSpecies(enc.sp);
   const init = useRef({
     easy: slot.mode === 'easy' || slot.caught.length === 0,
@@ -459,6 +461,8 @@ export function Battle({ enc, slot, onSeen, onCaught, onFight, onWin, onEnd }: P
             caught: slot.caught.includes(wild.id) ? slot.caught : [...slot.caught, wild.id],
           }}
           only={wild.id}
+          reading={reading}
+          onRead={onRead}
           onClose={ui.done}
         />
       )}

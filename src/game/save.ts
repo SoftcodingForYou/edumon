@@ -17,6 +17,7 @@ export interface SaveSlot {
   seen: number[];
   caught: number[];
   record: FightRecords; // how often each of the child's Edumón fought, and won
+  read: number[]; // known Edumón whose name the child has read out loud
   allUnlocked: boolean; // secret code typed: everything that needs all 150 caught is open
   created: number;
   updated: number;
@@ -74,6 +75,7 @@ export interface Settings {
   music: boolean;
   font: FontStyle;
   upper: boolean; // show every text in capital letters
+  reading: boolean; // read names out loud with the microphone (on unless switched off in Ajustes)
   keys: KeyBindings;
 }
 
@@ -172,6 +174,7 @@ function sanitize(raw: unknown): SaveSlot | null {
     seen,
     caught,
     record: validRecords(r.record),
+    read: validIds(r.read).filter((id) => seen.includes(id)),
     allUnlocked: r.allUnlocked === true,
     created: typeof r.created === 'number' ? r.created : Date.now(),
     updated: typeof r.updated === 'number' ? r.updated : Date.now(),
@@ -237,6 +240,7 @@ export function createSlot(
     seen: validIds([...(start.seen ?? []), ...caught]),
     caught,
     record: {},
+    read: [],
     allUnlocked: false,
     created: now,
     updated: now,
@@ -273,6 +277,7 @@ export interface ImportedGame {
   seen: number[];
   caught: number[];
   record: FightRecords;
+  read: number[];
   allUnlocked: boolean;
   world: unknown; // the exact world state (checked again when the game is loaded)
 }
@@ -291,6 +296,7 @@ export function exportGame(slot: SaveSlot): string {
       seen: slot.seen,
       caught: slot.caught,
       record: slot.record,
+      read: slot.read,
       allUnlocked: slot.allUnlocked,
     },
     world: loadWorldData(slot.id),
@@ -311,7 +317,7 @@ export function parseExport(text: string): ImportedGame | null {
     if (!d || d.format !== EXPORT_FORMAT || !d.game || typeof d.game !== 'object') return null;
     const s = sanitize({ ...(d.game as object), id: 'import', name: 'import' });
     if (!s) return null;
-    return { mode: s.mode, map: s.map, avatar: s.avatar, seen: s.seen, caught: s.caught, record: s.record, allUnlocked: s.allUnlocked, world: d.world ?? null };
+    return { mode: s.mode, map: s.map, avatar: s.avatar, seen: s.seen, caught: s.caught, record: s.record, read: s.read, allUnlocked: s.allUnlocked, world: d.world ?? null };
   } catch {
     return null;
   }
@@ -333,6 +339,7 @@ export function importGame(name: string, g: ImportedGame): SaveSlot {
     seen: [...g.seen],
     caught: [...g.caught],
     record: { ...g.record },
+    read: [...g.read],
     allUnlocked: g.allUnlocked,
     created: now,
     updated: now,
@@ -360,7 +367,7 @@ export function loadWorldData(slotId: string): unknown {
   }
 }
 
-export const DEFAULT_SETTINGS: Settings = { sound: true, music: true, font: 'fine', upper: false, keys: { ...DEFAULT_KEYS } };
+export const DEFAULT_SETTINGS: Settings = { sound: true, music: true, font: 'fine', upper: false, reading: true, keys: { ...DEFAULT_KEYS } };
 
 export function loadSettings(): Settings {
   try {
@@ -372,6 +379,7 @@ export function loadSettings(): Settings {
       music: s.music ?? DEFAULT_SETTINGS.music,
       font: s.font === 'pixel' ? 'pixel' : 'fine',
       upper: s.upper === true,
+      reading: typeof s.reading === 'boolean' ? s.reading : DEFAULT_SETTINGS.reading,
       keys: sanitizeBindings(s.keys),
     };
   } catch {

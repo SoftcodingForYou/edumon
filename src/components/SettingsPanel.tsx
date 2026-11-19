@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { Settings } from '../game/save';
 import { Menu, LAYER, KeyHint, A, Bb } from './ui';
 import { KeyBindingsPanel } from './KeyBindingsPanel';
+import { ConfirmDialog } from './ConfirmDialog';
+import { canListen, prepareListening } from '../system/listen';
 
 interface Props {
   settings: Settings;
@@ -24,6 +26,7 @@ function toggleFullscreen() {
 
 export function SettingsPanel({ settings, onChange, onClose, layer = LAYER.dialog }: Props) {
   const [keysOpen, setKeysOpen] = useState(false);
+  const [askReading, setAskReading] = useState(false);
   const options = [
     { label: `Sonidos: ${yesNo(settings.sound)}` },
     { label: `Música: ${yesNo(settings.music)}` },
@@ -32,6 +35,7 @@ export function SettingsPanel({ settings, onChange, onClose, layer = LAYER.dialo
       sub: settings.font === 'pixel' ? 'Letra de videojuego antiguo' : 'Letra clara para aprender a leer',
     },
     { label: `Mayúsculas: ${yesNo(settings.upper)}`, sub: settings.upper ? 'TODO EN MAYÚSCULAS' : 'Mayúsculas y minúsculas' },
+    { label: `Leer en voz alta: ${yesNo(settings.reading)}`, sub: 'Leer los nombres al micrófono' },
     { label: 'Teclas', sub: 'Elige qué tecla hace cada cosa' },
     { label: 'Pantalla completa' },
     { label: 'Volver' },
@@ -44,15 +48,18 @@ export function SettingsPanel({ settings, onChange, onClose, layer = LAYER.dialo
           scroll
           options={options}
           layer={layer}
-          active={!keysOpen}
+          active={!keysOpen && !askReading}
           onBack={onClose}
           onSelect={(i) => {
             if (i === 0) onChange({ ...settings, sound: !settings.sound });
             else if (i === 1) onChange({ ...settings, music: !settings.music });
             else if (i === 2) onChange({ ...settings, font: settings.font === 'pixel' ? 'fine' : 'pixel' });
             else if (i === 3) onChange({ ...settings, upper: !settings.upper });
-            else if (i === 4) setKeysOpen(true);
-            else if (i === 5) toggleFullscreen();
+            else if (i === 4) {
+              if (settings.reading) onChange({ ...settings, reading: false });
+              else setAskReading(true); // a grown-up decides about the microphone
+            } else if (i === 5) setKeysOpen(true);
+            else if (i === 6) toggleFullscreen();
             else onClose();
           }}
         />
@@ -60,6 +67,23 @@ export function SettingsPanel({ settings, onChange, onClose, layer = LAYER.dialo
           <A /> Cambiar &nbsp; <Bb /> Volver
         </KeyHint>
       </div>
+      {askReading && (
+        <ConfirmDialog
+          text={
+            canListen()
+              ? 'Para adultos: el navegador escucha la voz para comprobar la lectura (a veces la envía a Google o Apple). ¿Activar el micrófono?'
+              : 'Para adultos: este navegador no puede escuchar. Un adulto confirmará la lectura con ✓. ¿Activar?'
+          }
+          yes="Activar"
+          layer={layer + 5}
+          onAnswer={(yes) => {
+            setAskReading(false);
+            if (!yes) return;
+            onChange({ ...settings, reading: true });
+            if (canListen()) void prepareListening(); // asks for the microphone now, while the grown-up is here
+          }}
+        />
+      )}
       {keysOpen && <KeyBindingsPanel keys={settings.keys} onChange={(keys) => onChange({ ...settings, keys })} onClose={() => setKeysOpen(false)} />}
     </div>
   );

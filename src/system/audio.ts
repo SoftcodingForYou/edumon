@@ -11,6 +11,7 @@ let noiseBuf: AudioBuffer | null = null;
 let unlocked = false; // browsers only allow audio after a user gesture
 let recording = false; // rendering sounds offline (see renderSfxToWav)
 let pitchMul = 1; // bigger attacks sound lower
+let listening = false; // the microphone is open: the game keeps quiet so it doesn't hear itself
 
 function ensure(): BaseAudioContext | null {
   if (recording) return ctx;
@@ -26,7 +27,7 @@ function ensure(): BaseAudioContext | null {
     sfxGain.gain.value = 0.2;
     sfxGain.connect(master);
     musicGain = ctx.createGain();
-    musicGain.gain.value = musicOn ? 0.1 : 0;
+    musicGain.gain.value = musicLevel();
     musicGain.connect(master);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
@@ -51,9 +52,17 @@ export function setSoundEnabled(on: boolean) {
   soundOn = on;
 }
 
+const musicLevel = () => (musicOn && !listening ? 0.1 : 0);
+
 export function setMusicEnabled(on: boolean) {
   musicOn = on;
-  if (musicGain && ctx) musicGain.gain.setTargetAtTime(on ? 0.1 : 0, ctx.currentTime, 0.05);
+  if (musicGain && ctx) musicGain.gain.setTargetAtTime(musicLevel(), ctx.currentTime, 0.05);
+}
+
+/** While the microphone listens to the child, music and sound effects are silent. */
+export function setListening(on: boolean) {
+  listening = on;
+  if (musicGain && ctx) musicGain.gain.setTargetAtTime(musicLevel(), ctx.currentTime, 0.05);
 }
 
 function tone(freq: number, start: number, dur: number, type: OscillatorType = 'square', vol = 0.6, slideTo?: number, dest?: GainNode | null) {
@@ -113,7 +122,7 @@ export type Sfx =
   | 'type';
 
 export function sfx(name: Sfx, at?: number) {
-  if (!soundOn) return;
+  if (!soundOn || listening) return;
   const c = ensure();
   if (!c) return;
   const t = at ?? c.currentTime + 0.01;

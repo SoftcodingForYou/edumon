@@ -6,7 +6,9 @@ import { zonesOfSpecies } from '../world/world';
 import { portraitURL } from '../art/assets';
 import { useInput } from '../system/input';
 import { sfx } from '../system/audio';
-import { LAYER, BallIcon, EyeIcon, KeyHint, A, Bb, TypeBadge, DirKeys, FitText, CupIcon, ScrollBar } from './ui';
+import { canListen } from '../system/listen';
+import { LAYER, BallIcon, EyeIcon, KeyHint, A, Bb, TypeBadge, DirKeys, FitText, CupIcon, ScrollBar, MicIcon, StarIcon } from './ui';
+import { ReadAloud, TRIES_BEFORE_SKIP } from './ReadAloud';
 
 const COLS = 6;
 
@@ -42,13 +44,30 @@ function whereItLives(s: Species, mapId: SaveSlot['map']): string {
   return joinY(zones.map((z) => map.zones[z].name));
 }
 
+interface Props {
+  slot: SaveSlot;
+  onClose: () => void;
+  only?: number;
+  reading?: boolean; // "Leer en voz alta" is on: caught Edumón's names can be read out loud
+  onRead?: (id: number) => void;
+}
+
 /**
  * The Edudex, always in Edudex-number order. With `only`, it shows just that creature's page
- * (when a creature is met for the first time); Action or Cancel closes it.
+ * (when a creature is caught for the first time); Action or Cancel closes it.
+ * With reading on, every known creature's page has a "Leer" button: selected (Action reads) until
+ * the name was read once; after that it's selected with up/down or tapped. The new page after a
+ * catch is a one-time pass: it can only be left once the name was read (or, after 5 tries, the ✕
+ * was used), and then the button is gone.
  */
-export function Dex({ slot, onClose, only }: { slot: SaveSlot; onClose: () => void; only?: number }) {
+export function Dex({ slot, onClose, only, reading = false, onRead }: Props) {
   const seen = new Set(slot.seen);
   const caught = new Set(slot.caught);
+  const [readNow, setReadNow] = useState<number[]>([]); // read in this visit (the slot follows)
+  const read = new Set([...slot.read, ...readNow]);
+  const [readingId, setReadingId] = useState<number | null>(null);
+  const [btnPick, setBtnPick] = useState<boolean | null>(null); // the Leer button chosen with up/down
+  const [passed, setPassed] = useState(false); // the new page's one reading is done (or given up with ✕)
   const [idx, setIdx] = useState(() => (only ? only - 1 : slot.seen.length ? slot.seen[0] - 1 : 0));
   const [detail, setDetail] = useState(!!only);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -62,10 +81,36 @@ export function Dex({ slot, onClose, only }: { slot: SaveSlot; onClose: () => vo
     if (ni < 0 || ni >= TOTAL) return;
     sfx('move');
     setIdx(ni);
+    setBtnPick(null);
+  };
+
+  // every Edumón already met can be read; on the new page after a catch just once
+  const canRead = (id: number) => reading && seen.has(id) && !(only && passed);
+  const cur = idx + 1;
+  const mustRead = !!only && canRead(cur); // the new page: read before going on
+  // in the Edudex the Leer button is selected until the name was read once (then only when chosen again)
+  const btnSel = only ? mustRead : detail && canRead(cur) && (btnPick ?? !read.has(cur));
+  const startReading = (id: number) => {
+    sfx('ok');
+    setReadingId(id);
   };
 
   useInput((e) => {
+    if (!only && detail && canRead(cur) && (e.btn === 'up' || e.btn === 'down')) {
+      // up/down choose the Leer button (or leave it)
+      sfx('move');
+      setBtnPick(e.btn === 'down');
+      return;
+    }
+    if (e.btn === 'a' && btnSel) {
+      startReading(cur);
+      return;
+    }
     if (only) {
+      if (mustRead) {
+        if (e.btn === 'b') sfx('error');
+        return;
+      }
       if (e.btn === 'a' || e.btn === 'b') {
         sfx('ok');
         onClose();
@@ -122,7 +167,7 @@ export function Dex({ slot, onClose, only }: { slot: SaveSlot; onClose: () => vo
 
   const s = getSpecies(idx + 1);
   return (
-    <div className={'dex' + (only ? ' dex-new' : '')}>
+    <div className={'dex' + (only ? ' dex-new' : '') + (reading ? ' reading' : '')}>
       <div className="dex-header">
         <h2>EDUDEX</h2>
         {only && <span className="dex-new-badge">¡Nuevo!</span>}
@@ -132,6 +177,11 @@ export function Dex({ slot, onClose, only }: { slot: SaveSlot; onClose: () => vo
         <span className="dex-count">
           <EyeIcon size={26} /> {seen.size} vistos
         </span>
+        {reading && !only && (
+          <span className="dex-count">
+            <StarIcon size={26} /> {read.size}
+          </span>
+        )}
       </div>
       {!detail && (
         <div className="dex-grid" ref={gridRef}>
@@ -148,7 +198,10 @@ export function Dex({ slot, onClose, only }: { slot: SaveSlot; onClose: () => vo
                 }}
               >
                 <span className="dex-num">{dexNumber(sp.id)}</span>
-                <span className="dex-mark">{caught.has(sp.id) ? <BallIcon size={22} /> : isSeen ? <EyeIcon size={22} /> : null}</span>
+                <span className="dex-mark">
+                  {reading && read.has(sp.id) && <StarIcon size={22} />}
+                  {caught.has(sp.id) ? <BallIcon size={22} /> : isSeen ? <EyeIcon size={22} /> : null}
+                </span>
                 {isSeen ? <img className="pix dex-img" src={portraitURL(sp.id)} alt={sp.name} draggable={false} /> : <span className="dex-q">?</span>}
                 <FitText className="dex-name">{isSeen ? sp.name : '???'}</FitText>
               </div>
@@ -159,13 +212,23 @@ export function Dex({ slot, onClose, only }: { slot: SaveSlot; onClose: () => vo
       {!detail && <ScrollBar target={gridRef} className="dex-scroll" />}
       {detail && seen.has(s.id) && (
         <div className="dex-detail">
-          <div className={'dex-portrait bg-' + s.habitats[0]}>
-            <img className="pix" src={portraitURL(s.id)} alt={s.name} draggable={false} />
+          <div className="dex-left">
+            <div className={'dex-portrait bg-' + s.habitats[0]}>
+              <img className="pix" src={portraitURL(s.id)} alt={s.name} draggable={false} />
+            </div>
+            {canRead(s.id) && (
+              <div className="dex-read">
+                <button className={'read-btn' + (btnSel ? ' sel' : '')} onClick={() => startReading(s.id)}>
+                  {btnSel && <A />} {canListen() ? <MicIcon size={38} /> : null} Leer
+                </button>
+              </div>
+            )}
           </div>
           <div className="dex-info">
             <p className="dex-big-num">{dexNumber(s.id)}</p>
             <h3>
               {s.name} {caught.has(s.id) ? <BallIcon size={34} /> : <EyeIcon size={34} />}
+              {reading && read.has(s.id) && <StarIcon size={34} />}
             </h3>
             <p>
               {s.types.map((t) => (
@@ -192,13 +255,19 @@ export function Dex({ slot, onClose, only }: { slot: SaveSlot; onClose: () => vo
         </div>
       )}
       <KeyHint>
-        {only ? (
+        {mustRead ? null : only ? (
           <>
             <A /> <Bb /> Seguir
           </>
         ) : detail ? (
           <>
-            <DirKeys pair="lr" /> Anterior / Siguiente &nbsp; <Bb /> Volver
+            <DirKeys pair="lr" /> Anterior / Siguiente &nbsp;{' '}
+            {canRead(cur) && !btnSel && (
+              <>
+                <DirKeys pair="ud" /> Leer &nbsp;{' '}
+              </>
+            )}
+            <Bb /> Volver
           </>
         ) : (
           <>
@@ -206,6 +275,25 @@ export function Dex({ slot, onClose, only }: { slot: SaveSlot; onClose: () => vo
           </>
         )}
       </KeyHint>
+      {readingId !== null && (
+        <ReadAloud
+          key={readingId}
+          id={readingId}
+          closeAfter={only ? TRIES_BEFORE_SKIP : 0}
+          onRead={() => {
+            setReadNow((r) => [...r, readingId]);
+            setBtnPick(null); // read: Action goes on again
+            if (only) setPassed(true);
+            onRead?.(readingId);
+          }}
+          onSkip={() => {
+            if (only) setPassed(true);
+            setBtnPick(false); // Action goes on now
+            setReadingId(null);
+          }}
+          onClose={() => setReadingId(null)}
+        />
+      )}
     </div>
   );
 }

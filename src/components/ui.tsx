@@ -402,6 +402,45 @@ export function CupIcon({ size = 15 }: { size?: number }) {
   );
 }
 
+/** A microphone: reading a name out loud. */
+export function MicIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg className="mic" width={size} height={size} viewBox="0 0 16 16" aria-label="micrófono">
+      <rect x="5.2" y="1" width="5.6" height="9" rx="2.8" fill="#e8505b" stroke="#2a2238" strokeWidth="1.2" />
+      <rect x="6.4" y="2.4" width="1.2" height="3" rx="0.6" fill="#ffffff" opacity="0.8" />
+      <path d="M3.2 7.2 C3.2 10.4 5.4 12 8 12 C10.6 12 12.8 10.4 12.8 7.2 M8 12 V14.6 M5.4 14.8 H10.6" fill="none" stroke="#2a2238" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** A crossed-out microphone: this browser / device can't listen right now. */
+export function MicOffIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg className="mic-off" width={size} height={size} viewBox="0 0 16 16" aria-label="sin micrófono">
+      <rect x="5.2" y="1" width="5.6" height="9" rx="2.8" fill="#b8b0c4" stroke="#2a2238" strokeWidth="1.2" />
+      <path d="M3.2 7.2 C3.2 10.4 5.4 12 8 12 C10.6 12 12.8 10.4 12.8 7.2 M8 12 V14.6 M5.4 14.8 H10.6" fill="none" stroke="#2a2238" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M2 2 L14 14" stroke="#ffffff" strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M2 2 L14 14" stroke="#e44a40" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** A gold star: this name was read out loud. */
+export function StarIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg className="star" width={size} height={size} viewBox="0 0 16 16" aria-label="leído">
+      <path
+        d="M8 1 L10.1 5.5 L15 6 L11.3 9.3 L12.4 14.2 L8 11.7 L3.6 14.2 L4.7 9.3 L1 6 L5.9 5.5 Z"
+        fill="#f8c838"
+        stroke="#2a2238"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+      <path d="M6 6.6 L7.3 6.4" stroke="#fff6c8" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function EyeIcon({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" className="pix" aria-label="visto">
